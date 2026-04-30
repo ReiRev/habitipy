@@ -62,6 +62,10 @@ class HabitsResource:
         payload = _decode_json_object(response)
         return Habit.model_validate(payload)
 
+    def archive(self, habit_id: str) -> None:
+        response = self._client.post(f"/habits/{habit_id}/archive")
+        raise_for_api_status(response)
+
     def delete(self, habit_id: str) -> None:
         response = self._client.delete(f"/habits/{habit_id}")
         raise_for_api_status(response)
