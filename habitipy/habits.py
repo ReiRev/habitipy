@@ -13,6 +13,10 @@ from .models.habits import (
     HabitJournalParams,
     HabitListPage,
     HabitListParams,
+    HabitLogRequest,
+    HabitLogResponse,
+    HabitStatisticsParams,
+    HabitStatisticsResponse,
     HabitType,
 )
 
@@ -50,12 +54,37 @@ class HabitsResource:
         payload = _decode_json_object(response)
         return Habit.model_validate(payload)
 
+    def create_log(self, habit_id: str, request: HabitLogRequest) -> HabitLogResponse:
+        response = self._client.post(
+            f"/habits/{habit_id}/logs",
+            json=request.to_request_body(),
+        )
+        raise_for_api_status(response)
+        payload = _decode_json_object(response)
+        return HabitLogResponse.model_validate(payload)
+
     def journal(self, *, date: date | None = None) -> HabitJournalPage:
         params = HabitJournalParams(journal_date=date)
         response = self._client.get("/habits/journal", params=params.to_query_params())
         raise_for_api_status(response)
         payload = _decode_json_object(response)
         return HabitJournalPage.model_validate(payload)
+
+    def statistics(
+        self,
+        habit_id: str,
+        *,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> HabitStatisticsResponse:
+        params = HabitStatisticsParams(start_date=start_date, end_date=end_date)
+        response = self._client.get(
+            f"/habits/{habit_id}/statistics",
+            params=params.to_query_params(),
+        )
+        raise_for_api_status(response)
+        payload = _decode_json_object(response)
+        return HabitStatisticsResponse.model_validate(payload)
 
 
 def _decode_json_object(response: httpx.Response) -> dict[str, Any]:

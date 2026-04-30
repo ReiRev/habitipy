@@ -4,7 +4,7 @@ from datetime import date, datetime, time
 from enum import Enum
 from typing import Annotated, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..pagination import Pagination
 
@@ -357,6 +357,64 @@ class HabitJournalPage(HabitModel):
     data: list[HabitJournalEntry]
 
 
+class HabitStatisticsUnit(HabitModel):
+    id: str
+    name: str
+    symbol: UnitSymbol | str
+
+    @field_validator("symbol", mode="before")
+    @classmethod
+    def coerce_known_symbol(cls, value: object) -> object:
+        if isinstance(value, str):
+            try:
+                return UnitSymbol(value)
+            except ValueError:
+                return value
+        return value
+
+
+class HabitStatisticsDailyProgress(HabitModel):
+    date: date
+    total_log: float = Field(alias="totalLog")
+    status: HabitJournalStatus
+
+
+class HabitStatistics(HabitModel):
+    id: str
+    name: str
+    type: HabitType
+    total_logs: float = Field(alias="totalLogs")
+    skips: int
+    fails: int
+    completions: int
+    unit: HabitStatisticsUnit
+    periodicity: GoalPeriodicity
+    avg: float
+    daily_progress: list[HabitStatisticsDailyProgress] = Field(
+        default_factory=list, alias="dailyProgress"
+    )
+
+
+class HabitStatisticsResponse(HabitModel):
+    data: HabitStatistics
+
+
+class HabitLogRequest(HabitModel):
+    unit_symbol: UnitSymbol = Field(alias="unitSymbol")
+    value: float
+    target_date: date | None = Field(default=None, alias="targetDate")
+
+    def to_request_body(self) -> dict[str, object]:
+        return cast(
+            dict[str, object],
+            self.model_dump(by_alias=True, exclude_none=True, mode="json"),
+        )
+
+
+class HabitLogResponse(HabitModel):
+    message: str
+
+
 class HabitCreateRequest(HabitModel):
     name: str
     type: HabitType
@@ -401,6 +459,21 @@ class HabitListParams(HabitModel):
 
 class HabitJournalParams(HabitModel):
     journal_date: date | None = Field(default=None, alias="date")
+
+    def to_query_params(self) -> dict[str, str]:
+        return {
+            key: str(value)
+            for key, value in self.model_dump(
+                by_alias=True,
+                exclude_none=True,
+                mode="json",
+            ).items()
+        }
+
+
+class HabitStatisticsParams(HabitModel):
+    start_date: date | None = Field(default=None, alias="startDate")
+    end_date: date | None = Field(default=None, alias="endDate")
 
     def to_query_params(self) -> dict[str, str]:
         return {
