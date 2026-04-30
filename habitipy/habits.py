@@ -13,6 +13,8 @@ from .models.habits import (
     HabitJournalParams,
     HabitListPage,
     HabitListParams,
+    HabitLogRequest,
+    HabitLogResponse,
     HabitStatisticsParams,
     HabitStatisticsResponse,
     HabitType,
@@ -51,6 +53,15 @@ class HabitsResource:
         raise_for_api_status(response)
         payload = _decode_json_object(response)
         return Habit.model_validate(payload)
+
+    def create_log(self, habit_id: str, request: HabitLogRequest) -> HabitLogResponse:
+        response = self._client.post(
+            f"/habits/{habit_id}/logs",
+            json=request.to_request_body(),
+        )
+        raise_for_api_status(response)
+        payload = _decode_json_object(response)
+        return HabitLogResponse.model_validate(payload)
 
     def journal(self, *, date: date | None = None) -> HabitJournalPage:
         params = HabitJournalParams(journal_date=date)

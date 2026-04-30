@@ -389,6 +389,22 @@ class HabitStatisticsResponse(HabitModel):
     data: HabitStatistics
 
 
+class HabitLogRequest(HabitModel):
+    unit_symbol: UnitSymbol = Field(alias="unitSymbol")
+    value: float
+    target_date: date | None = Field(default=None, alias="targetDate")
+
+    def to_request_body(self) -> dict[str, object]:
+        return cast(
+            dict[str, object],
+            self.model_dump(by_alias=True, exclude_none=True, mode="json"),
+        )
+
+
+class HabitLogResponse(HabitModel):
+    message: str
+
+
 class HabitCreateRequest(HabitModel):
     name: str
     type: HabitType
