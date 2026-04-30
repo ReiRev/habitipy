@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, time
 from enum import Enum
-from typing import Annotated, Literal
+from typing import Annotated, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -59,6 +59,18 @@ class UnitSymbol(str, Enum):
     STEP = "step"
 
 
+class HabitStackTriggerType(str, Enum):
+    COMPLETED = "completed"
+    SKIPPED = "skipped"
+    FAILED = "failed"
+    REMINDER = "reminder"
+
+
+class HabitStackTimerType(str, Enum):
+    IMMEDIATELY = "immediately"
+    AFTER = "after"
+
+
 class ReminderTime(HabitModel):
     hour: int
     minute: int
@@ -85,6 +97,36 @@ class HabitStack(HabitModel):
     timer_delay_secs: int = Field(alias="timerDelaySecs")
 
 
+class HabitCreateReminderTime(HabitModel):
+    hour: int
+    minute: int
+
+
+class HabitCreateReminderOccurrenceFilter(HabitModel):
+    week_days: list[int] | None = Field(default=None, alias="weekDays")
+
+
+class HabitCreateTimeTrigger(HabitModel):
+    time: HabitCreateReminderTime
+    occurrence_filter: HabitCreateReminderOccurrenceFilter | None = Field(
+        default=None, alias="occurrenceFilter"
+    )
+    show_live_activity: bool | None = Field(default=None, alias="showLiveActivity")
+    show_as_alarm: bool | None = Field(default=None, alias="showAsAlarm")
+
+
+class HabitCreateHabitStack(HabitModel):
+    condition_habit_id: str = Field(alias="conditionHabitId")
+    type: HabitStackTriggerType
+    timer_type: HabitStackTimerType = Field(alias="timerType")
+    timer_delay_secs: int | None = Field(default=None, alias="timerDelaySecs")
+
+
+class HabitCreateReminders(HabitModel):
+    time_triggers: list[HabitCreateTimeTrigger] = Field(default_factory=list, alias="timeTriggers")
+    habit_stacks: list[HabitCreateHabitStack] = Field(default_factory=list, alias="habitStacks")
+
+
 class Reminders(HabitModel):
     time_triggers: list[TimeTrigger] = Field(default_factory=list, alias="timeTriggers")
     habit_stacks: list[HabitStack] = Field(default_factory=list, alias="habitStacks")
@@ -109,8 +151,36 @@ class IntervalDaysOccurrence(HabitModel):
     interval: int
 
 
+class HabitCreateDailyOccurrence(HabitModel):
+    type: Literal["daily"]
+
+
+class HabitCreateWeekDaysOccurrence(HabitModel):
+    type: Literal["weekDays"]
+    days: list[int]
+
+
+class HabitCreateMonthDaysOccurrence(HabitModel):
+    type: Literal["monthDays"]
+    days: list[int]
+
+
+class HabitCreateIntervalDaysOccurrence(HabitModel):
+    type: Literal["intervalDays"]
+    interval: int
+
+
 Occurrence = Annotated[
     DailyOccurrence | WeekDaysOccurrence | MonthDaysOccurrence | IntervalDaysOccurrence,
+    Field(discriminator="type"),
+]
+
+
+HabitCreateOccurrence = Annotated[
+    HabitCreateDailyOccurrence
+    | HabitCreateWeekDaysOccurrence
+    | HabitCreateMonthDaysOccurrence
+    | HabitCreateIntervalDaysOccurrence,
     Field(discriminator="type"),
 ]
 
@@ -149,10 +219,45 @@ class TotalLogValueEndCondition(HabitModel):
     total_log_value: float = Field(alias="totalLogValue")
 
 
+class HabitCreateDateEndCondition(HabitModel):
+    type: Literal["date"]
+    date: date
+
+
+class HabitCreateStreakEndCondition(HabitModel):
+    type: Literal["streak"]
+    streak_length: int = Field(alias="streakLength")
+
+
+class HabitCreateSuccessPeriodsEndCondition(HabitModel):
+    type: Literal["successPeriods"]
+    total_periods: int = Field(alias="totalPeriods")
+
+
+class HabitCreateTotalLogValueEndCondition(HabitModel):
+    type: Literal["totalLogValue"]
+    total_log_value: float = Field(alias="totalLogValue")
+
+
 EndCondition = Annotated[
     DateEndCondition | StreakEndCondition | SuccessPeriodsEndCondition | TotalLogValueEndCondition,
     Field(discriminator="type"),
 ]
+
+
+HabitCreateEndCondition = Annotated[
+    HabitCreateDateEndCondition
+    | HabitCreateStreakEndCondition
+    | HabitCreateSuccessPeriodsEndCondition
+    | HabitCreateTotalLogValueEndCondition,
+    Field(discriminator="type"),
+]
+
+
+class HabitCreateGoal(HabitModel):
+    periodicity: GoalPeriodicity
+    value: float
+    unit: UnitSymbol
 
 
 class Goal(HabitModel):
@@ -206,6 +311,28 @@ class Habit(HabitModel):
 class HabitListPage(HabitModel):
     data: list[Habit]
     pagination: Pagination
+
+
+class HabitCreateRequest(HabitModel):
+    name: str
+    type: HabitType
+    description: str | None = None
+    occurrence: HabitCreateOccurrence | None = None
+    start_date: date | None = Field(default=None, alias="startDate")
+    icon: str | None = None
+    color_hex: str | None = Field(default=None, alias="colorHex")
+    custom_unit_name: str | None = Field(default=None, alias="customUnitName")
+    area_ids: list[str] | None = Field(default=None, alias="areaIds")
+    time_of_day_ids: list[str] | None = Field(default=None, alias="timeOfDayIds")
+    goal: HabitCreateGoal | None = None
+    reminders: HabitCreateReminders | None = None
+    end_condition: HabitCreateEndCondition | None = Field(default=None, alias="endCondition")
+
+    def to_request_body(self) -> dict[str, object]:
+        return cast(
+            dict[str, object],
+            self.model_dump(by_alias=True, exclude_none=True, mode="json"),
+        )
 
 
 class HabitListParams(HabitModel):

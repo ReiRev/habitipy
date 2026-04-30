@@ -8,12 +8,21 @@ from .errors import (
     ServerError,
     UnexpectedResponseShapeError,
 )
-from .models.habits import Habit, HabitListPage, HabitType
+from .models.habits import (
+    GoalPeriodicity,
+    Habit,
+    HabitCreateRequest,
+    HabitListPage,
+    HabitType,
+    UnitSymbol,
+)
 
 __all__ = [
     "ApiError",
     "AuthenticationError",
+    "GoalPeriodicity",
     "Habit",
+    "HabitCreateRequest",
     "HabitListPage",
     "HabitType",
     "HabitipyClient",
@@ -21,5 +30,6 @@ __all__ = [
     "RateLimitError",
     "ResponseDecodeError",
     "ServerError",
+    "UnitSymbol",
     "UnexpectedResponseShapeError",
 ]
