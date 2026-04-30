@@ -42,7 +42,7 @@ class HabitipyClient:
             if API_KEY_HEADER not in self._client.headers:
                 raise ValueError(
                     "api_key is required unless the provided client already has "
-                    "an X-API-Key header."
+                    f"an {API_KEY_HEADER} header."
                 )
 
         self.habits = HabitsResource(self._client)

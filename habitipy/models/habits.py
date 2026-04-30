@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, time
 from enum import Enum
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -216,13 +216,13 @@ class HabitListParams(HabitModel):
     limit: int | None = Field(default=None, ge=1, le=100)
     offset: int | None = Field(default=None, ge=0)
 
-    def to_query_params(self) -> dict[str, Any]:
-        serialized: dict[str, Any] = {}
+    def to_query_params(self) -> dict[str, str]:
+        serialized: dict[str, str] = {}
         for key, value in self.model_dump(by_alias=True, exclude_none=True).items():
             if isinstance(value, bool):
                 serialized[key] = str(value).lower()
             elif isinstance(value, Enum):
                 serialized[key] = value.value
             else:
-                serialized[key] = value
+                serialized[key] = str(value)
         return serialized

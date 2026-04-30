@@ -5,7 +5,12 @@ import pytest
 import respx
 
 from habitipy import HabitipyClient, HabitType
-from habitipy.errors import ApiError, RateLimitError, UnexpectedResponseShapeError
+from habitipy.errors import (
+    ApiError,
+    RateLimitError,
+    ResponseDecodeError,
+    UnexpectedResponseShapeError,
+)
 
 
 def build_habits_payload() -> dict[str, object]:
@@ -208,6 +213,24 @@ def test_client_habits_list_rejects_non_object_payloads() -> None:
     client = HabitipyClient(api_key="test-key")
     try:
         with pytest.raises(UnexpectedResponseShapeError, match="JSON object"):
+            client.habits.list()
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_client_habits_list_raises_response_decode_error_for_invalid_json() -> None:
+    respx.get("https://api.habitify.me/v2/habits").mock(
+        return_value=httpx.Response(
+            200,
+            content=b"not-json",
+            headers={"Content-Type": "application/json"},
+        )
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(ResponseDecodeError, match="invalid JSON"):
             client.habits.list()
     finally:
         client.close()
