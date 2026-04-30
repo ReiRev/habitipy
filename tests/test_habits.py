@@ -266,8 +266,23 @@ def test_client_habits_delete_sends_expected_path_and_returns_none() -> None:
         client.close()
 
     assert result is None
+    assert route.called
     assert route.calls[0].request.headers["X-API-Key"] == "test-key"
     assert route.calls[0].request.url.path == "/v2/habits/habit_123"
+
+
+@respx.mock
+def test_client_habits_delete_rejects_unexpected_success_status() -> None:
+    respx.delete("https://api.habitify.me/v2/habits/habit_123").mock(
+        return_value=httpx.Response(200)
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(httpx.HTTPStatusError, match="Expected HTTP 204 No Content"):
+            client.habits.delete("habit_123")
+    finally:
+        client.close()
 
 
 @respx.mock

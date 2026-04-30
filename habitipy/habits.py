@@ -53,6 +53,12 @@ class HabitsResource:
     def delete(self, habit_id: str) -> None:
         response = self._client.delete(f"/habits/{habit_id}")
         raise_for_api_status(response)
+        if response.status_code != 204:
+            raise httpx.HTTPStatusError(
+                f"Expected HTTP 204 No Content for habit deletion, got {response.status_code}.",
+                request=response.request,
+                response=response,
+            )
 
     def journal(self, *, date: date | None = None) -> HabitJournalPage:
         params = HabitJournalParams(journal_date=date)
