@@ -311,7 +311,7 @@ def test_client_habits_update_sends_expected_json_and_returns_none() -> None:
         "customUnitName": "laps",
         "areaIds": ["area_1"],
         "timeOfDayIds": ["tod_1"],
-        "goal": {"periodicity": "daily", "value": 7.0, "unit": "kM"},
+        "goal": {"periodicity": "daily", "value": 7.0, "unit": UnitSymbol.KM.value},
         "reminders": {
             "timeTriggers": [
                 {
@@ -324,6 +324,26 @@ def test_client_habits_update_sends_expected_json_and_returns_none() -> None:
         },
         "endCondition": {"type": "date", "date": "2024-12-31"},
     }
+
+
+@respx.mock
+def test_client_habits_update_serializes_only_provided_fields() -> None:
+    route = respx.put("https://api.habitify.me/v2/habits/habit_123").mock(
+        return_value=httpx.Response(200)
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        result = client.habits.update(
+            "habit_123",
+            HabitUpdateRequest(name="Updated", reminders=HabitUpdateReminders()),
+        )
+    finally:
+        client.close()
+
+    assert result is None
+    assert route.called
+    assert json.loads(route.calls[0].request.content.decode("utf-8")) == {"name": "Updated"}
 
 
 @respx.mock

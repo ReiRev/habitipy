@@ -13,6 +13,23 @@ class HabitModel(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
 
+def _prune_empty_dicts(value: object) -> object | None:
+    if isinstance(value, dict):
+        pruned = {
+            key: pruned_value
+            for key, item in value.items()
+            if (pruned_value := _prune_empty_dicts(item)) is not None
+        }
+        return pruned or None
+
+    if isinstance(value, list):
+        return [
+            pruned_item for item in value if (pruned_item := _prune_empty_dicts(item)) is not None
+        ]
+
+    return value
+
+
 class HabitType(str, Enum):
     GOOD = "good"
     BAD = "bad"
@@ -399,10 +416,8 @@ class HabitUpdateRequest(HabitModel):
     end_condition: HabitCreateEndCondition | None = Field(default=None, alias="endCondition")
 
     def to_request_body(self) -> dict[str, object]:
-        return cast(
-            dict[str, object],
-            self.model_dump(by_alias=True, exclude_none=True, mode="json"),
-        )
+        payload = self.model_dump(by_alias=True, exclude_none=True, mode="json")
+        return cast(dict[str, object], _prune_empty_dicts(payload) or {})
 
 
 class HabitListParams(HabitModel):
