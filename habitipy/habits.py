@@ -13,6 +13,8 @@ from .models.habits import (
     HabitJournalParams,
     HabitListPage,
     HabitListParams,
+    HabitStatisticsParams,
+    HabitStatisticsResponse,
     HabitType,
 )
 
@@ -56,6 +58,22 @@ class HabitsResource:
         raise_for_api_status(response)
         payload = _decode_json_object(response)
         return HabitJournalPage.model_validate(payload)
+
+    def statistics(
+        self,
+        habit_id: str,
+        *,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> HabitStatisticsResponse:
+        params = HabitStatisticsParams(start_date=start_date, end_date=end_date)
+        response = self._client.get(
+            f"/habits/{habit_id}/statistics",
+            params=params.to_query_params(),
+        )
+        raise_for_api_status(response)
+        payload = _decode_json_object(response)
+        return HabitStatisticsResponse.model_validate(payload)
 
 
 def _decode_json_object(response: httpx.Response) -> dict[str, Any]:

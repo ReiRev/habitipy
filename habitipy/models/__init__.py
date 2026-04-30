@@ -6,6 +6,10 @@ from .habits import (
     HabitJournalPage,
     HabitJournalStatus,
     HabitListPage,
+    HabitStatistics,
+    HabitStatisticsDailyProgress,
+    HabitStatisticsResponse,
+    HabitStatisticsUnit,
     HabitType,
     UnitSymbol,
 )
@@ -18,6 +22,10 @@ __all__ = [
     "HabitJournalPage",
     "HabitJournalStatus",
     "HabitListPage",
+    "HabitStatistics",
+    "HabitStatisticsDailyProgress",
+    "HabitStatisticsResponse",
+    "HabitStatisticsUnit",
     "HabitType",
     "UnitSymbol",
 ]

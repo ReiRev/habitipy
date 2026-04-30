@@ -357,6 +357,38 @@ class HabitJournalPage(HabitModel):
     data: list[HabitJournalEntry]
 
 
+class HabitStatisticsUnit(HabitModel):
+    id: str
+    name: str
+    symbol: str
+
+
+class HabitStatisticsDailyProgress(HabitModel):
+    date: date
+    total_log: float = Field(alias="totalLog")
+    status: HabitJournalStatus
+
+
+class HabitStatistics(HabitModel):
+    id: str
+    name: str
+    type: HabitType
+    total_logs: float = Field(alias="totalLogs")
+    skips: int
+    fails: int
+    completions: int
+    unit: HabitStatisticsUnit
+    periodicity: GoalPeriodicity
+    avg: float
+    daily_progress: list[HabitStatisticsDailyProgress] = Field(
+        default_factory=list, alias="dailyProgress"
+    )
+
+
+class HabitStatisticsResponse(HabitModel):
+    data: HabitStatistics
+
+
 class HabitCreateRequest(HabitModel):
     name: str
     type: HabitType
@@ -401,6 +433,21 @@ class HabitListParams(HabitModel):
 
 class HabitJournalParams(HabitModel):
     journal_date: date | None = Field(default=None, alias="date")
+
+    def to_query_params(self) -> dict[str, str]:
+        return {
+            key: str(value)
+            for key, value in self.model_dump(
+                by_alias=True,
+                exclude_none=True,
+                mode="json",
+            ).items()
+        }
+
+
+class HabitStatisticsParams(HabitModel):
+    start_date: date | None = Field(default=None, alias="startDate")
+    end_date: date | None = Field(default=None, alias="endDate")
 
     def to_query_params(self) -> dict[str, str]:
         return {
