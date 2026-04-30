@@ -17,6 +17,7 @@ from habitipy import (
     HabitLogResponse,
     HabitStatisticsResponse,
     HabitType,
+    HabitUpdateRequest,
     UnitSymbol,
 )
 from habitipy.errors import (
@@ -39,6 +40,7 @@ from habitipy.models.habits import (
     HabitJournalStreakUnit,
     HabitStackTimerType,
     HabitStackTriggerType,
+    HabitUpdateReminders,
 )
 
 
@@ -321,6 +323,127 @@ def test_client_habits_create_sends_expected_json_and_parses_response() -> None:
     assert habit.reminders.habit_stacks[0].type is HabitStackTriggerType.COMPLETED
     assert habit.reminders.habit_stacks[0].timer_type is HabitStackTimerType.IMMEDIATELY
     assert habit.reminders.habit_stacks[0].timer_delay_secs is None
+
+
+@respx.mock
+def test_client_habits_update_sends_expected_json_and_returns_none() -> None:
+    route = respx.put("https://api.habitify.me/v2/habits/habit_123").mock(
+        return_value=httpx.Response(200)
+    )
+
+    request = HabitUpdateRequest(
+        name="Morning Run Updated",
+        description="Run before breakfast",
+        occurrence=HabitCreateWeekDaysOccurrence(type="weekDays", days=[2, 3, 4, 5, 6]),
+        startDate="2024-01-02",
+        icon="figure.run",
+        colorHex="#123456",
+        customUnitName="laps",
+        areaIds=["area_1"],
+        timeOfDayIds=["tod_1"],
+        goal=HabitCreateGoal(
+            periodicity=GoalPeriodicity.DAILY,
+            value=7,
+            unit=UnitSymbol.KM,
+        ),
+        reminders=HabitUpdateReminders(
+            timeTriggers=[
+                HabitCreateTimeTrigger(
+                    time=HabitCreateReminderTime(hour=7, minute=0),
+                    occurrenceFilter=HabitCreateReminderOccurrenceFilter(weekDays=[2, 3, 4]),
+                    showLiveActivity=True,
+                    showAsAlarm=False,
+                )
+            ]
+        ),
+        endCondition=HabitCreateDateEndCondition(type="date", date="2024-12-31"),
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        result = client.habits.update("habit_123", request)
+    finally:
+        client.close()
+
+    assert result is None
+
+    http_request = route.calls[0].request
+    assert http_request.headers["X-API-Key"] == "test-key"
+
+    payload = json.loads(http_request.content.decode("utf-8"))
+    assert payload == {
+        "name": "Morning Run Updated",
+        "description": "Run before breakfast",
+        "occurrence": {"type": "weekDays", "days": [2, 3, 4, 5, 6]},
+        "startDate": "2024-01-02",
+        "icon": "figure.run",
+        "colorHex": "#123456",
+        "customUnitName": "laps",
+        "areaIds": ["area_1"],
+        "timeOfDayIds": ["tod_1"],
+        "goal": {"periodicity": "daily", "value": 7.0, "unit": UnitSymbol.KM.value},
+        "reminders": {
+            "timeTriggers": [
+                {
+                    "time": {"hour": 7, "minute": 0},
+                    "occurrenceFilter": {"weekDays": [2, 3, 4]},
+                    "showLiveActivity": True,
+                    "showAsAlarm": False,
+                }
+            ]
+        },
+        "endCondition": {"type": "date", "date": "2024-12-31"},
+    }
+
+
+@respx.mock
+def test_client_habits_update_serializes_only_provided_fields() -> None:
+    route = respx.put("https://api.habitify.me/v2/habits/habit_123").mock(
+        return_value=httpx.Response(200)
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        result = client.habits.update(
+            "habit_123",
+            HabitUpdateRequest(name="Updated", reminders=HabitUpdateReminders()),
+        )
+    finally:
+        client.close()
+
+    assert result is None
+    assert route.called
+    assert json.loads(route.calls[0].request.content.decode("utf-8")) == {"name": "Updated"}
+
+
+@respx.mock
+def test_client_habits_update_maps_not_found_error() -> None:
+    respx.put("https://api.habitify.me/v2/habits/missing").mock(
+        return_value=httpx.Response(404, json={"message": "Habit not found"})
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(ApiError, match="Habit not found") as exc_info:
+            client.habits.update("missing", HabitUpdateRequest(name="Updated"))
+    finally:
+        client.close()
+
+    assert exc_info.value.response.status_code == 404
+
+
+@respx.mock
+def test_client_habits_update_maps_validation_error() -> None:
+    respx.put("https://api.habitify.me/v2/habits/habit_123").mock(
+        return_value=httpx.Response(422, json={"message": "Validation error"})
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(ApiError, match="Validation error"):
+            client.habits.update("habit_123", HabitUpdateRequest(name="Updated"))
+    finally:
+        client.close()
 
 
 @respx.mock

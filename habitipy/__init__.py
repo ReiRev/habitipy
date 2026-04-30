@@ -23,6 +23,7 @@ from .models.habits import (
     HabitStatisticsResponse,
     HabitStatisticsUnit,
     HabitType,
+    HabitUpdateRequest,
     UnitSymbol,
 )
 
@@ -38,6 +39,7 @@ __all__ = [
     "HabitJournalPage",
     "HabitJournalStatus",
     "HabitListPage",
+    "HabitUpdateRequest",
     "HabitStatistics",
     "HabitStatisticsDailyProgress",
     "HabitStatisticsResponse",

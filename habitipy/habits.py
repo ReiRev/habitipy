@@ -19,6 +19,7 @@ from .models.habits import (
     HabitStatisticsParams,
     HabitStatisticsResponse,
     HabitType,
+    HabitUpdateRequest,
 )
 
 
@@ -69,6 +70,10 @@ class HabitsResource:
         raise_for_api_status(response)
         payload = _decode_json_object(response)
         return HabitLogResponse.model_validate(payload)
+
+    def update(self, habit_id: str, request: HabitUpdateRequest) -> None:
+        response = self._client.put(f"/habits/{habit_id}", json=request.to_request_body())
+        raise_for_api_status(response)
 
     def journal(self, *, date: date | None = None) -> HabitJournalPage:
         params = HabitJournalParams(journal_date=date)
