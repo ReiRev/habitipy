@@ -271,7 +271,7 @@ def test_client_habits_archive_sends_expected_path_and_returns_none() -> None:
 
 
 @respx.mock
-def test_client_habits_archive_maps_conflict_error() -> None:
+def test_client_habits_archive_surfaces_conflict_api_error_message() -> None:
     respx.post("https://api.habitify.me/v2/habits/already-archived/archive").mock(
         return_value=httpx.Response(409, json={"message": "Habit is already archived"})
     )
