@@ -1,0 +1,17 @@
+[project]
+name = "habitipy"
+version = "0.1.0"
+description = "A Python client for Habitify: manage habits, logs, completions, skips, and progress from code."
+authors = [
+    {name = "ReiRev",email = "reirev2913@gmail.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
