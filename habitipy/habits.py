@@ -62,6 +62,16 @@ class HabitsResource:
         payload = _decode_json_object(response)
         return Habit.model_validate(payload)
 
+    def delete(self, habit_id: str) -> None:
+        response = self._client.delete(f"/habits/{habit_id}")
+        raise_for_api_status(response)
+        if response.status_code != 204:
+            raise httpx.HTTPStatusError(
+                f"Expected HTTP 204 No Content for habit deletion, got {response.status_code}.",
+                request=response.request,
+                response=response,
+            )
+
     def create_log(self, habit_id: str, request: HabitLogRequest) -> HabitLogResponse:
         response = self._client.post(
             f"/habits/{habit_id}/logs",
