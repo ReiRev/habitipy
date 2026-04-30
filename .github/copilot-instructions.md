@@ -13,12 +13,14 @@
 
 ## Architecture
 - Keep transport concerns isolated from resource logic.
+- Prefer native `httpx` exceptions where they are already expressive enough; only add custom exceptions when Habitify-specific semantics need to be conveyed.
 - Model discriminated unions from the Habitify schema explicitly, especially `occurrence` and `endCondition`.
 - Hide raw response envelopes when practical; prefer returning typed resource objects and explicit pagination helpers.
 
 ## Workflow
 - Before changing API-facing code, verify the relevant endpoint shape in the Habitify OpenAPI spec.
 - Keep changes incremental: transport and errors first, then shared models, then resources.
+- For Python changes, run `python -m ruff format` and `python -m ruff check` on the touched Python files before finalizing.
 - When adding or changing tests, validate across every supported Python version in the project's declared support matrix; if that matrix is not explicit yet, make it explicit before finalizing test automation.
 - After implementation work is complete and validated, create a checkpoint commit unless higher-priority runtime instructions for the current environment forbid committing; if committing is blocked, say so explicitly.
 - If a task is mostly design or planning, update the AI docs in `docs/ai/` before broad implementation work.

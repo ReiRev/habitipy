@@ -20,13 +20,17 @@ def configure(
     if _default_client is not None:
         _default_client.close()
 
-    _default_client = HabitipyClient(api_key=api_key, client=client, base_url=base_url, timeout=timeout)
+    _default_client = HabitipyClient(
+        api_key=api_key, client=client, base_url=base_url, timeout=timeout
+    )
     return _default_client
 
 
 def get_client() -> HabitipyClient:
     if _default_client is None:
-        raise RuntimeError("habitipy is not configured. Call habitipy.configure(api_key=...) first.")
+        raise RuntimeError(
+            "habitipy is not configured. Call habitipy.configure(api_key=...) first."
+        )
     return _default_client
 
 

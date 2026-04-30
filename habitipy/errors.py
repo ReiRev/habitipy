@@ -26,10 +26,6 @@ class ApiError(httpx.HTTPStatusError):
         self.payload = payload
 
 
-class BadRequestError(ApiError):
-    """Raised when the API rejects request parameters or body data."""
-
-
 class AuthenticationError(ApiError):
     """Raised when authentication is missing or invalid."""
 
@@ -73,7 +69,7 @@ def raise_for_api_status(response: httpx.Response) -> None:
 
     error_cls: type[ApiError]
     if response.status_code == 400:
-        error_cls = BadRequestError
+        error_cls = ApiError
     elif response.status_code == 401:
         error_cls = AuthenticationError
     elif response.status_code == 404:

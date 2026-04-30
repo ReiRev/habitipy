@@ -2,7 +2,6 @@ from .client import HabitipyClient
 from .errors import (
     ApiError,
     AuthenticationError,
-    BadRequestError,
     NotFoundError,
     RateLimitError,
     ResponseDecodeError,
@@ -15,7 +14,6 @@ from .runtime import configure, get_client, habits, reset
 __all__ = [
     "ApiError",
     "AuthenticationError",
-    "BadRequestError",
     "Habit",
     "HabitListPage",
     "HabitType",

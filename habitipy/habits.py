@@ -40,7 +40,9 @@ def _decode_json_object(response: httpx.Response) -> dict[str, Any]:
     try:
         payload = response.json()
     except ValueError as exc:
-        raise ResponseDecodeError("Habitify API returned invalid JSON.", request=response.request) from exc
+        raise ResponseDecodeError(
+            "Habitify API returned invalid JSON.", request=response.request
+        ) from exc
 
     if not isinstance(payload, dict):
         raise UnexpectedResponseShapeError(

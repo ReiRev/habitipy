@@ -54,6 +54,13 @@ Agents should verify endpoint details against the OpenAPI spec before implementi
 - Use `httpx`.
 - Keep HTTP concerns isolated from resource logic, but do not add a thin transport wrapper when direct `httpx.Client` injection is enough.
 - Centralize auth header handling, timeout configuration, error mapping, and response parsing.
+- Prefer native `httpx` exceptions when they already express the failure clearly; add custom subclasses only for Habitify-specific semantics such as rate limiting or auth-specific handling.
+
+### Formatting and linting
+
+- Use Ruff for both formatting and linting.
+- After Python changes, run `python -m ruff format` and `python -m ruff check` on the touched Python files.
+- Do not skip Ruff validation when changing Python code.
 
 ### Public API shape
 

@@ -70,7 +70,9 @@ class ReminderOccurrenceFilter(HabitModel):
 
 class TimeTrigger(HabitModel):
     time: ReminderTime
-    occurrence_filter: ReminderOccurrenceFilter | None = Field(default=None, alias="occurrenceFilter")
+    occurrence_filter: ReminderOccurrenceFilter | None = Field(
+        default=None, alias="occurrenceFilter"
+    )
     show_live_activity: bool | None = Field(default=None, alias="showLiveActivity")
     show_as_alarm: bool | None = Field(default=None, alias="showAsAlarm")
 

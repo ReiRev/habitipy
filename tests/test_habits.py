@@ -5,8 +5,8 @@ import pytest
 import respx
 
 import habitipy
-from habitipy import HabitType, HabitipyClient
-from habitipy.errors import RateLimitError, UnexpectedResponseShapeError
+from habitipy import HabitipyClient, HabitType
+from habitipy.errors import ApiError, RateLimitError, UnexpectedResponseShapeError
 
 
 def build_habits_payload() -> dict[str, object]:
@@ -155,6 +155,28 @@ def test_package_level_habits_list_uses_configured_client() -> None:
 
 
 @respx.mock
+def test_client_habits_list_uses_generic_api_error_for_bad_request() -> None:
+    respx.get("https://api.habitify.me/v2/habits").mock(
+        return_value=httpx.Response(
+            400,
+            json={
+                "error": "Validation Error",
+                "message": "Request validation failed",
+            },
+        )
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(ApiError, match="Request validation failed") as exc_info:
+            client.habits.list(limit=50)
+    finally:
+        client.close()
+
+    assert exc_info.value.response.status_code == 400
+
+
+@respx.mock
 def test_client_habits_list_maps_rate_limit_error() -> None:
     respx.get("https://api.habitify.me/v2/habits").mock(
         return_value=httpx.Response(
@@ -188,9 +210,7 @@ def test_client_habits_list_raises_httpx_timeout_errors() -> None:
 
 @respx.mock
 def test_client_habits_list_rejects_non_object_payloads() -> None:
-    respx.get("https://api.habitify.me/v2/habits").mock(
-        return_value=httpx.Response(200, json=[])
-    )
+    respx.get("https://api.habitify.me/v2/habits").mock(return_value=httpx.Response(200, json=[]))
 
     client = HabitipyClient(api_key="test-key")
     try:

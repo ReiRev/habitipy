@@ -33,7 +33,7 @@ class HabitipyClient:
         if self._owns_client:
             self._client.close()
 
-    def __enter__(self) -> "HabitipyClient":
+    def __enter__(self) -> HabitipyClient:
         return self
 
     def __exit__(self, exc_type: object, exc: object, tb: object) -> None:

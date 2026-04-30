@@ -1,20 +1,17 @@
 # habitipy
 A Python client for Habitify: manage habits, logs, completions, skips, and progress from code.
 
-## Status
-
-The first implemented endpoint is `GET /habits`.
-
-The library currently exposes both:
-
-- `HabitipyClient(...).habits.list(...)`
-- `habitipy.configure(...); habitipy.habits.list(...)`
-
 ## Setup
 
-This repository does not commit a project-local virtual environment.
+This repository uses `poetry-core` as the build backend, but you can work with either Poetry or a regular virtual environment.
 
-For local development, create your own `.venv` and install the package with dev dependencies:
+With Poetry:
+
+```bash
+poetry install --extras dev
+```
+
+Without Poetry:
 
 ```bash
 python -m venv .venv
@@ -22,15 +19,51 @@ source .venv/bin/activate
 python -m pip install -e .[dev]
 ```
 
+This repository does not commit a project-local virtual environment.
+
+## Format And Lint
+
+Run Ruff before finishing Python changes.
+
+With Poetry:
+
+```bash
+poetry run python -m ruff format habitipy tests
+poetry run python -m ruff check habitipy tests
+```
+
+Without Poetry:
+
+```bash
+python -m ruff format habitipy tests
+python -m ruff check habitipy tests
+```
+
 ## Running Tests
 
 Use `python -m pytest` instead of plain `pytest` so the tests run with the same interpreter where you installed the dependencies.
+
+With Poetry:
+
+```bash
+poetry run python -m pytest tests/test_habits.py
+```
+
+Without Poetry:
 
 ```bash
 python -m pytest tests/test_habits.py
 ```
 
 For the declared support matrix, use `tox`:
+
+With Poetry:
+
+```bash
+poetry run python -m tox run -e py310,py311,py312,py313
+```
+
+Without Poetry:
 
 ```bash
 python -m tox run -e py310,py311,py312,py313
