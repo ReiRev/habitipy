@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -24,6 +25,12 @@ from .models.habits import (
 class HabitsResource:
     def __init__(self, client: httpx.Client) -> None:
         self._client = client
+
+    def get(self, habit_id: str) -> Habit:
+        response = self._client.get(f"/habits/{quote(habit_id, safe='')}")
+        raise_for_api_status(response)
+        payload = _decode_json_object(response)
+        return Habit.model_validate(payload)
 
     def list(
         self,

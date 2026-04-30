@@ -22,6 +22,7 @@ from habitipy import (
 from habitipy.errors import (
     ApiError,
     AuthenticationError,
+    NotFoundError,
     RateLimitError,
     ResponseDecodeError,
     UnexpectedResponseShapeError,
@@ -168,6 +169,43 @@ def build_habit_statistics_payload() -> dict[str, object]:
 
 def build_habit_log_response_payload() -> dict[str, object]:
     return {"message": "Habit log created successfully"}
+
+
+@respx.mock
+def test_client_habits_get_sends_expected_path_and_parses_response() -> None:
+    route = respx.get("https://api.habitify.me/v2/habits/habit_123").mock(
+        return_value=httpx.Response(200, json=build_habit_payload())
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        habit = client.habits.get("habit_123")
+    finally:
+        client.close()
+
+    request = route.calls[0].request
+    assert request.headers["X-API-Key"] == "test-key"
+    assert request.url.path == "/v2/habits/habit_123"
+    assert habit.id == "habit_123"
+    assert habit.type is HabitType.GOOD
+    assert habit.time_of_days[0].name == "Morning"
+
+
+@respx.mock
+def test_client_habits_get_url_encodes_path_segment() -> None:
+    route = respx.get("https://api.habitify.me/v2/habits/habit%2Fwith%20spaces%3F%23").mock(
+        return_value=httpx.Response(200, json=build_habit_payload())
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        habit = client.habits.get("habit/with spaces?#")
+    finally:
+        client.close()
+
+    assert route.called
+    assert route.calls[0].request.url.raw_path == b"/v2/habits/habit%2Fwith%20spaces%3F%23"
+    assert habit.id == "habit_123"
 
 
 @respx.mock
@@ -601,6 +639,22 @@ def test_client_habits_journal_maps_bad_request_error() -> None:
 
 
 @respx.mock
+def test_client_habits_get_maps_not_found_error() -> None:
+    respx.get("https://api.habitify.me/v2/habits/missing").mock(
+        return_value=httpx.Response(404, json={"message": "Habit not found"})
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(NotFoundError, match="Habit not found") as exc_info:
+            client.habits.get("missing")
+    finally:
+        client.close()
+
+    assert exc_info.value.response.status_code == 404
+
+
+@respx.mock
 def test_client_habits_list_maps_rate_limit_error() -> None:
     respx.get("https://api.habitify.me/v2/habits").mock(
         return_value=httpx.Response(
@@ -676,6 +730,24 @@ def test_client_habits_create_raises_response_decode_error_for_invalid_json() ->
     try:
         with pytest.raises(ResponseDecodeError, match="invalid JSON"):
             client.habits.create(HabitCreateRequest(name="Morning Run", type=HabitType.GOOD))
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_client_habits_get_raises_response_decode_error_for_invalid_json() -> None:
+    respx.get("https://api.habitify.me/v2/habits/habit_123").mock(
+        return_value=httpx.Response(
+            200,
+            content=b"not-json",
+            headers={"Content-Type": "application/json"},
+        )
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(ResponseDecodeError, match="invalid JSON"):
+            client.habits.get("habit_123")
     finally:
         client.close()
 
