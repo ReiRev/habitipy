@@ -4,7 +4,7 @@ from datetime import date, datetime, time
 from enum import Enum
 from typing import Annotated, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..pagination import Pagination
 
@@ -360,7 +360,17 @@ class HabitJournalPage(HabitModel):
 class HabitStatisticsUnit(HabitModel):
     id: str
     name: str
-    symbol: str
+    symbol: UnitSymbol | str
+
+    @field_validator("symbol", mode="before")
+    @classmethod
+    def coerce_known_symbol(cls, value: object) -> object:
+        if isinstance(value, str):
+            try:
+                return UnitSymbol(value)
+            except ValueError:
+                return value
+        return value
 
 
 class HabitStatisticsDailyProgress(HabitModel):
