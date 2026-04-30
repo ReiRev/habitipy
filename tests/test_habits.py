@@ -254,6 +254,39 @@ def test_client_habits_create_sends_expected_json_and_parses_response() -> None:
 
 
 @respx.mock
+def test_client_habits_delete_sends_expected_path_and_returns_none() -> None:
+    route = respx.delete("https://api.habitify.me/v2/habits/habit_123").mock(
+        return_value=httpx.Response(204)
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        result = client.habits.delete("habit_123")
+    finally:
+        client.close()
+
+    assert result is None
+    assert route.calls[0].request.headers["X-API-Key"] == "test-key"
+    assert route.calls[0].request.url.path == "/v2/habits/habit_123"
+
+
+@respx.mock
+def test_client_habits_delete_maps_not_found_error() -> None:
+    respx.delete("https://api.habitify.me/v2/habits/missing").mock(
+        return_value=httpx.Response(404, json={"message": "Habit not found"})
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(ApiError, match="Habit not found") as exc_info:
+            client.habits.delete("missing")
+    finally:
+        client.close()
+
+    assert exc_info.value.response.status_code == 404
+
+
+@respx.mock
 def test_client_habits_journal_sends_expected_query_params_and_parses_response() -> None:
     route = respx.get("https://api.habitify.me/v2/habits/journal").mock(
         return_value=httpx.Response(200, json=build_habit_journal_payload())
