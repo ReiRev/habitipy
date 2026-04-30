@@ -154,7 +154,7 @@ def build_habit_statistics_payload() -> dict[str, object]:
             "unit": {
                 "id": "unit_1",
                 "name": "Kilometer",
-                "symbol": "km",
+                "symbol": UnitSymbol.KM.value,
             },
             "periodicity": "daily",
             "avg": 1.25,
@@ -336,7 +336,7 @@ def test_client_habits_statistics_sends_expected_query_params_and_parses_respons
     assert statistics.data.skips == 1
     assert statistics.data.fails == 2
     assert statistics.data.completions == 3
-    assert statistics.data.unit.symbol == "km"
+    assert statistics.data.unit.symbol is UnitSymbol.KM
     assert statistics.data.periodicity is GoalPeriodicity.DAILY
     assert statistics.data.avg == 1.25
     assert statistics.data.daily_progress[0].status is HabitJournalStatus.COMPLETED
