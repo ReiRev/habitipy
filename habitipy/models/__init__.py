@@ -1,3 +1,10 @@
-from .habits import Habit, HabitListPage, HabitType
+from .habits import GoalPeriodicity, Habit, HabitCreateRequest, HabitListPage, HabitType, UnitSymbol
 
-__all__ = ["Habit", "HabitListPage", "HabitType"]
+__all__ = [
+    "GoalPeriodicity",
+    "Habit",
+    "HabitCreateRequest",
+    "HabitListPage",
+    "HabitType",
+    "UnitSymbol",
+]

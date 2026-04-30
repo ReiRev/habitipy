@@ -1,15 +1,31 @@
 from __future__ import annotations
 
+import json
+
 import httpx
 import pytest
 import respx
+from pydantic import ValidationError
 
-from habitipy import HabitipyClient, HabitType
+from habitipy import GoalPeriodicity, HabitCreateRequest, HabitipyClient, HabitType, UnitSymbol
 from habitipy.errors import (
     ApiError,
+    AuthenticationError,
     RateLimitError,
     ResponseDecodeError,
     UnexpectedResponseShapeError,
+)
+from habitipy.models.habits import (
+    HabitCreateDateEndCondition,
+    HabitCreateGoal,
+    HabitCreateHabitStack,
+    HabitCreateReminderOccurrenceFilter,
+    HabitCreateReminders,
+    HabitCreateReminderTime,
+    HabitCreateTimeTrigger,
+    HabitCreateWeekDaysOccurrence,
+    HabitStackTimerType,
+    HabitStackTriggerType,
 )
 
 
@@ -38,7 +54,14 @@ def build_habits_payload() -> dict[str, object]:
                             "showAsAlarm": False,
                         }
                     ],
-                    "habitStacks": [],
+                    "habitStacks": [
+                        {
+                            "id": "stack_1",
+                            "conditionHabitId": "habit_456",
+                            "type": "completed",
+                            "timerType": "immediately",
+                        }
+                    ],
                 },
                 "endCondition": None,
                 "goals": [
@@ -78,6 +101,10 @@ def build_habits_payload() -> dict[str, object]:
     }
 
 
+def build_habit_payload() -> dict[str, object]:
+    return dict(build_habits_payload()["data"][0])
+
+
 @respx.mock
 def test_client_habits_list_sends_expected_query_params_and_parses_response() -> None:
     route = respx.get("https://api.habitify.me/v2/habits").mock(
@@ -109,6 +136,88 @@ def test_client_habits_list_sends_expected_query_params_and_parses_response() ->
     assert page.pagination.total == 1
     assert page.data[0].type is HabitType.GOOD
     assert page.data[0].time_of_days[0].name == "Morning"
+    assert page.data[0].reminders.habit_stacks[0].type is HabitStackTriggerType.COMPLETED
+    assert page.data[0].reminders.habit_stacks[0].timer_type is HabitStackTimerType.IMMEDIATELY
+    assert page.data[0].reminders.habit_stacks[0].timer_delay_secs is None
+
+
+@respx.mock
+def test_client_habits_create_sends_expected_json_and_parses_response() -> None:
+    route = respx.post("https://api.habitify.me/v2/habits").mock(
+        return_value=httpx.Response(201, json=build_habit_payload())
+    )
+
+    request = HabitCreateRequest(
+        name="Morning Run",
+        type=HabitType.GOOD,
+        description="Run before breakfast",
+        occurrence=HabitCreateWeekDaysOccurrence(type="weekDays", days=[2, 3, 4, 5, 6]),
+        startDate="2024-01-01",
+        icon="figure.run",
+        colorHex="#FF6B6B",
+        customUnitName="laps",
+        areaIds=["area_1"],
+        timeOfDayIds=["tod_1"],
+        goal=HabitCreateGoal(
+            periodicity=GoalPeriodicity.DAILY,
+            value=5,
+            unit=UnitSymbol.KM,
+        ),
+        reminders=HabitCreateReminders(
+            timeTriggers=[
+                HabitCreateTimeTrigger(
+                    time=HabitCreateReminderTime(hour=6, minute=30),
+                    occurrenceFilter=HabitCreateReminderOccurrenceFilter(weekDays=[2, 3, 4]),
+                    showLiveActivity=True,
+                    showAsAlarm=False,
+                )
+            ],
+            habitStacks=[
+                HabitCreateHabitStack(
+                    conditionHabitId="habit_abc",
+                    type=HabitStackTriggerType.COMPLETED,
+                    timerType=HabitStackTimerType.AFTER,
+                    timerDelaySecs=300,
+                )
+            ],
+        ),
+        endCondition=HabitCreateDateEndCondition(type="date", date="2024-12-31"),
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        habit = client.habits.create(request)
+    finally:
+        client.close()
+
+    http_request = route.calls[0].request
+    assert http_request.headers["X-API-Key"] == "test-key"
+
+    payload = json.loads(http_request.content.decode("utf-8"))
+    assert payload["name"] == "Morning Run"
+    assert payload["type"] == "good"
+    assert payload["occurrence"] == {"type": "weekDays", "days": [2, 3, 4, 5, 6]}
+    assert payload["startDate"] == "2024-01-01"
+    assert payload["colorHex"] == "#FF6B6B"
+    assert payload["customUnitName"] == "laps"
+    assert payload["areaIds"] == ["area_1"]
+    assert payload["timeOfDayIds"] == ["tod_1"]
+    assert payload["goal"] == {"periodicity": "daily", "value": 5.0, "unit": "kM"}
+    assert payload["endCondition"] == {"type": "date", "date": "2024-12-31"}
+    assert payload["reminders"]["timeTriggers"][0]["occurrenceFilter"] == {"weekDays": [2, 3, 4]}
+    assert payload["reminders"]["habitStacks"][0] == {
+        "conditionHabitId": "habit_abc",
+        "type": "completed",
+        "timerType": "after",
+        "timerDelaySecs": 300,
+    }
+
+    assert habit.id == "habit_123"
+    assert habit.name == "Morning Run"
+    assert habit.type is HabitType.GOOD
+    assert habit.reminders.habit_stacks[0].type is HabitStackTriggerType.COMPLETED
+    assert habit.reminders.habit_stacks[0].timer_type is HabitStackTimerType.IMMEDIATELY
+    assert habit.reminders.habit_stacks[0].timer_delay_secs is None
 
 
 @respx.mock
@@ -125,6 +234,11 @@ def test_client_habits_list_uses_injected_httpx_client() -> None:
 
     assert route.calls[0].request.headers["X-API-Key"] == "injected-key"
     assert page.data[0].name == "Morning Run"
+
+
+def test_habit_create_request_requires_name_and_type() -> None:
+    with pytest.raises(ValidationError):
+        HabitCreateRequest()  # type: ignore[call-arg]
 
 
 @respx.mock
@@ -172,6 +286,34 @@ def test_client_habits_list_uses_generic_api_error_for_bad_request() -> None:
         client.close()
 
     assert exc_info.value.response.status_code == 400
+
+
+@respx.mock
+def test_client_habits_create_maps_bad_request_error() -> None:
+    respx.post("https://api.habitify.me/v2/habits").mock(
+        return_value=httpx.Response(400, json={"message": "Request validation failed"})
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(ApiError, match="Request validation failed"):
+            client.habits.create(HabitCreateRequest(name="Morning Run", type=HabitType.GOOD))
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_client_habits_create_maps_authentication_error() -> None:
+    respx.post("https://api.habitify.me/v2/habits").mock(
+        return_value=httpx.Response(401, json={"message": "Missing API key"})
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(AuthenticationError, match="Missing API key"):
+            client.habits.create(HabitCreateRequest(name="Morning Run", type=HabitType.GOOD))
+    finally:
+        client.close()
 
 
 @respx.mock
@@ -232,5 +374,23 @@ def test_client_habits_list_raises_response_decode_error_for_invalid_json() -> N
     try:
         with pytest.raises(ResponseDecodeError, match="invalid JSON"):
             client.habits.list()
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_client_habits_create_raises_response_decode_error_for_invalid_json() -> None:
+    respx.post("https://api.habitify.me/v2/habits").mock(
+        return_value=httpx.Response(
+            201,
+            content=b"not-json",
+            headers={"Content-Type": "application/json"},
+        )
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(ResponseDecodeError, match="invalid JSON"):
+            client.habits.create(HabitCreateRequest(name="Morning Run", type=HabitType.GOOD))
     finally:
         client.close()

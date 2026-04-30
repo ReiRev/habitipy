@@ -5,7 +5,7 @@ from typing import Any
 import httpx
 
 from .errors import ResponseDecodeError, UnexpectedResponseShapeError, raise_for_api_status
-from .models.habits import HabitListPage, HabitListParams, HabitType
+from .models.habits import Habit, HabitCreateRequest, HabitListPage, HabitListParams, HabitType
 
 
 class HabitsResource:
@@ -34,6 +34,12 @@ class HabitsResource:
         raise_for_api_status(response)
         payload = _decode_json_object(response)
         return HabitListPage.model_validate(payload)
+
+    def create(self, request: HabitCreateRequest) -> Habit:
+        response = self._client.post("/habits", json=request.to_request_body())
+        raise_for_api_status(response)
+        payload = _decode_json_object(response)
+        return Habit.model_validate(payload)
 
 
 def _decode_json_object(response: httpx.Response) -> dict[str, Any]:
