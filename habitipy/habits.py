@@ -12,6 +12,12 @@ class HabitsResource:
     def __init__(self, client: httpx.Client) -> None:
         self._client = client
 
+    def get(self, habit_id: str) -> Habit:
+        response = self._client.get(f"/habits/{habit_id}")
+        raise_for_api_status(response)
+        payload = _decode_json_object(response)
+        return Habit.model_validate(payload)
+
     def list(
         self,
         *,
