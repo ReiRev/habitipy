@@ -4,7 +4,6 @@ import httpx
 import pytest
 import respx
 
-import habitipy
 from habitipy import HabitipyClient, HabitType
 from habitipy.errors import ApiError, RateLimitError, UnexpectedResponseShapeError
 
@@ -113,45 +112,39 @@ def test_client_habits_list_uses_injected_httpx_client() -> None:
         return_value=httpx.Response(200, json=build_habits_payload())
     )
 
-    injected_client = httpx.Client(
-        base_url="https://api.habitify.me/v2",
-        headers={"X-API-Key": "injected-key"},
-    )
-
-    client = HabitipyClient(client=injected_client)
-    try:
+    with httpx.Client() as injected_client:
+        client = HabitipyClient(api_key="injected-key", client=injected_client)
         page = client.habits.list(limit=25)
         client.close()
         assert not injected_client.is_closed
-    finally:
-        injected_client.close()
 
     assert route.calls[0].request.headers["X-API-Key"] == "injected-key"
     assert page.data[0].name == "Morning Run"
 
 
-def test_package_level_habits_list_requires_configuration() -> None:
-    habitipy.reset()
-
-    with pytest.raises(RuntimeError, match="habitipy.configure"):
-        habitipy.habits.list()
-
-
 @respx.mock
-def test_package_level_habits_list_uses_configured_client() -> None:
+def test_client_accepts_injected_httpx_client_with_existing_api_key_header() -> None:
     route = respx.get("https://api.habitify.me/v2/habits").mock(
         return_value=httpx.Response(200, json=build_habits_payload())
     )
 
-    habitipy.reset()
-    habitipy.configure(api_key="configured-key")
-    try:
-        page = habitipy.habits.list(limit=25)
-    finally:
-        habitipy.reset()
+    with httpx.Client(headers={"X-API-Key": "preset-key"}) as injected_client:
+        client = HabitipyClient(client=injected_client)
+        page = client.habits.list(limit=25)
 
-    assert route.calls[0].request.headers["X-API-Key"] == "configured-key"
+    assert route.calls[0].request.headers["X-API-Key"] == "preset-key"
     assert page.data[0].name == "Morning Run"
+
+
+def test_client_requires_api_key_without_injected_client() -> None:
+    with pytest.raises(ValueError, match="api_key is required"):
+        HabitipyClient()
+
+
+def test_client_requires_api_key_when_injected_client_has_no_header() -> None:
+    with httpx.Client() as injected_client:
+        with pytest.raises(ValueError, match="provided client already has an X-API-Key header"):
+            HabitipyClient(client=injected_client)
 
 
 @respx.mock

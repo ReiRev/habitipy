@@ -7,7 +7,7 @@
 ## Non-Negotiable Conventions
 - Use `httpx` for HTTP transport. Do not introduce `requests`.
 - Enforce strong typing in the public client and internal boundaries; prefer explicit typed models and typed return values over untyped dictionaries or `Any`.
-- Prefer a resource-oriented public API surface such as `habitipy.habits.list(...)` and `habitipy.areas.list(...)`.
+- Prefer a resource-oriented public API surface such as `HabitipyClient(...).habits.list(...)` and `HabitipyClient(...).areas.list(...)`.
 - Do not default to flat method names such as `client.list_habits()` unless a compatibility layer is explicitly requested.
 - Separate request models from response models when the API schema differs between write and read shapes.
 
@@ -20,7 +20,7 @@
 ## Workflow
 - Before changing API-facing code, verify the relevant endpoint shape in the Habitify OpenAPI spec.
 - Keep changes incremental: transport and errors first, then shared models, then resources.
-- For Python changes, run `python -m ruff format` and `python -m ruff check` on the touched Python files before finalizing.
+- For Python changes, run `poetry run ruff format` and `poetry run ruff check` on the touched Python files before finalizing.
 - When adding or changing tests, validate across every supported Python version in the project's declared support matrix; if that matrix is not explicit yet, make it explicit before finalizing test automation.
 - After implementation work is complete and validated, create a checkpoint commit unless higher-priority runtime instructions for the current environment forbid committing; if committing is blocked, say so explicitly.
 - If a task is mostly design or planning, update the AI docs in `docs/ai/` before broad implementation work.

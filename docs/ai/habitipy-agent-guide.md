@@ -8,10 +8,10 @@ This document is for AI agents working in this repository.
 
 Primary examples:
 
-- `habitipy.habits.list()`
-- `habitipy.habits.get(habit_id)`
-- `habitipy.habits.create(payload)`
-- `habitipy.areas.list()`
+- `HabitipyClient(...).habits.list()`
+- `HabitipyClient(...).habits.get(habit_id)`
+- `HabitipyClient(...).habits.create(payload)`
+- `HabitipyClient(...).areas.list()`
 
 Avoid centering the public API around flat transport methods such as `list_habits()` unless the user explicitly asks for a compatibility wrapper.
 
@@ -59,14 +59,14 @@ Agents should verify endpoint details against the OpenAPI spec before implementi
 ### Formatting and linting
 
 - Use Ruff for both formatting and linting.
-- After Python changes, run `python -m ruff format` and `python -m ruff check` on the touched Python files.
+- After Python changes, run `poetry run ruff format` and `poetry run ruff check` on the touched Python files.
 - Do not skip Ruff validation when changing Python code.
 
 ### Public API shape
 
 - Favor namespaced resources.
-- The intended package ergonomics are closer to `habitipy.habits.list(...)` than `habitipy.list_habits(...)`.
-- If an instantiated client object becomes necessary, keep the same resource shape, for example `client.habits.list(...)`.
+- The intended package ergonomics are closer to `client.habits.list(...)` than `client.list_habits(...)`.
+- Keep the public entry point centered on `HabitipyClient` rather than a package-level singleton runtime.
 - Do not let transport abstractions leak into the public API.
 
 ### Modeling
@@ -97,7 +97,7 @@ Preferred resource grouping:
 - `habits.journal`
 - `habits.statistics`
 
-The user-facing surface can still flatten some of these into `habitipy.habits.*` methods if that is cleaner.
+The user-facing surface can still flatten some of these into `client.habits.*` methods if that is cleaner.
 
 ## Suggested Package Shape
 

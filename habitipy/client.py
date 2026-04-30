@@ -6,6 +6,7 @@ from .habits import HabitsResource
 
 DEFAULT_BASE_URL = "https://api.habitify.me/v2"
 DEFAULT_TIMEOUT = 10.0
+API_KEY_HEADER = "X-API-Key"
 
 
 class HabitipyClient:
@@ -15,17 +16,29 @@ class HabitipyClient:
         *,
         client: httpx.Client | None = None,
         base_url: str = DEFAULT_BASE_URL,
-        timeout: float = DEFAULT_TIMEOUT,
     ) -> None:
+        if client is None and api_key is None:
+            raise ValueError("api_key is required when client is not provided.")
+
         self._owns_client = client is None
         self._client = client or httpx.Client(
             base_url=base_url.rstrip("/"),
-            timeout=timeout,
-            headers={"X-API-Key": api_key} if api_key is not None else None,
+            timeout=DEFAULT_TIMEOUT,
+            headers={API_KEY_HEADER: api_key},
         )
 
-        if client is not None and api_key is not None and "X-API-Key" not in self._client.headers:
-            self._client.headers["X-API-Key"] = api_key
+        if client is not None:
+            if not str(self._client.base_url):
+                self._client.base_url = httpx.URL(base_url.rstrip("/"))
+
+            if api_key is not None:
+                self._client.headers[API_KEY_HEADER] = api_key
+
+            if API_KEY_HEADER not in self._client.headers:
+                raise ValueError(
+                    "api_key is required unless the provided client already has "
+                    "an X-API-Key header."
+                )
 
         self.habits = HabitsResource(self._client)
 

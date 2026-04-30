@@ -1,6 +1,6 @@
 ---
 name: Habitipy API Reviewer
-description: "Use when reviewing Habitify client public API shape, OpenAPI compatibility, naming, request or response model boundaries, and whether the package still feels like habitipy.habits.list(...) instead of flat transport calls."
+description: "Use when reviewing Habitify client public API shape, OpenAPI compatibility, naming, request or response model boundaries, and whether the package still feels like HabitipyClient(...).habits.list(...) instead of flat transport calls."
 tools: [read, search, web]
 user-invocable: false
 argument-hint: "Describe the Habitify API surface or change to review."

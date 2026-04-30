@@ -9,7 +9,6 @@ from .errors import (
     UnexpectedResponseShapeError,
 )
 from .models.habits import Habit, HabitListPage, HabitType
-from .runtime import configure, get_client, habits, reset
 
 __all__ = [
     "ApiError",
@@ -23,8 +22,4 @@ __all__ = [
     "ResponseDecodeError",
     "ServerError",
     "UnexpectedResponseShapeError",
-    "configure",
-    "get_client",
-    "habits",
-    "reset",
 ]
