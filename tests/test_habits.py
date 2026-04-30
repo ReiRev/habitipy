@@ -1,16 +1,25 @@
 from __future__ import annotations
 
 import json
+from datetime import date
 
 import httpx
 import pytest
 import respx
 from pydantic import ValidationError
 
-from habitipy import GoalPeriodicity, HabitCreateRequest, HabitipyClient, HabitType, UnitSymbol
+from habitipy import (
+    GoalPeriodicity,
+    HabitCreateRequest,
+    HabitipyClient,
+    HabitJournalStatus,
+    HabitType,
+    UnitSymbol,
+)
 from habitipy.errors import (
     ApiError,
     AuthenticationError,
+    NotFoundError,
     RateLimitError,
     ResponseDecodeError,
     UnexpectedResponseShapeError,
@@ -24,6 +33,7 @@ from habitipy.models.habits import (
     HabitCreateReminderTime,
     HabitCreateTimeTrigger,
     HabitCreateWeekDaysOccurrence,
+    HabitJournalStreakUnit,
     HabitStackTimerType,
     HabitStackTriggerType,
 )
@@ -105,6 +115,30 @@ def build_habit_payload() -> dict[str, object]:
     return dict(build_habits_payload()["data"][0])
 
 
+def build_habit_journal_payload() -> dict[str, object]:
+    return {
+        "data": [
+            {
+                "id": "habit_123",
+                "name": "Morning Run",
+                "status": "completed",
+                "colorHex": "#FF6B6B",
+                "icon": "figure.run",
+                "timeOfDayIds": ["tod_1"],
+                "type": "good",
+                "currentStreak": {"length": 7, "unit": "day"},
+                "progress": {
+                    "current": 5.2,
+                    "target": 5,
+                    "unit": "km",
+                    "periodicity": "daily",
+                },
+                "logInfo": {"type": "manual"},
+            }
+        ]
+    }
+
+
 @respx.mock
 def test_client_habits_get_sends_expected_path_and_parses_response() -> None:
     route = respx.get("https://api.habitify.me/v2/habits/habit_123").mock(
@@ -123,6 +157,23 @@ def test_client_habits_get_sends_expected_path_and_parses_response() -> None:
     assert habit.id == "habit_123"
     assert habit.type is HabitType.GOOD
     assert habit.time_of_days[0].name == "Morning"
+
+
+@respx.mock
+def test_client_habits_get_url_encodes_path_segment() -> None:
+    route = respx.get("https://api.habitify.me/v2/habits/habit%2Fwith%20spaces%3F%23").mock(
+        return_value=httpx.Response(200, json=build_habit_payload())
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        habit = client.habits.get("habit/with spaces?#")
+    finally:
+        client.close()
+
+    assert route.called
+    assert route.calls[0].request.url.raw_path == b"/v2/habits/habit%2Fwith%20spaces%3F%23"
+    assert habit.id == "habit_123"
 
 
 @respx.mock
@@ -241,6 +292,29 @@ def test_client_habits_create_sends_expected_json_and_parses_response() -> None:
 
 
 @respx.mock
+def test_client_habits_journal_sends_expected_query_params_and_parses_response() -> None:
+    route = respx.get("https://api.habitify.me/v2/habits/journal").mock(
+        return_value=httpx.Response(200, json=build_habit_journal_payload())
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        page = client.habits.journal(date=date(2024, 1, 2))
+    finally:
+        client.close()
+
+    request = route.calls[0].request
+    assert request.headers["X-API-Key"] == "test-key"
+    assert request.url.params["date"] == "2024-01-02"
+
+    assert page.data[0].status is HabitJournalStatus.COMPLETED
+    assert page.data[0].type is HabitType.GOOD
+    assert page.data[0].current_streak.unit is HabitJournalStreakUnit.DAY
+    assert page.data[0].progress.periodicity is GoalPeriodicity.DAILY
+    assert page.data[0].log_info.type.value == "manual"
+
+
+@respx.mock
 def test_client_habits_list_uses_injected_httpx_client() -> None:
     route = respx.get("https://api.habitify.me/v2/habits").mock(
         return_value=httpx.Response(200, json=build_habits_payload())
@@ -337,6 +411,20 @@ def test_client_habits_create_maps_authentication_error() -> None:
 
 
 @respx.mock
+def test_client_habits_journal_maps_bad_request_error() -> None:
+    respx.get("https://api.habitify.me/v2/habits/journal").mock(
+        return_value=httpx.Response(400, json={"message": "Invalid date format"})
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(ApiError, match="Invalid date format"):
+            client.habits.journal(date=date(2024, 1, 2))
+    finally:
+        client.close()
+
+
+@respx.mock
 def test_client_habits_get_maps_not_found_error() -> None:
     respx.get("https://api.habitify.me/v2/habits/missing").mock(
         return_value=httpx.Response(404, json={"message": "Habit not found"})
@@ -344,7 +432,7 @@ def test_client_habits_get_maps_not_found_error() -> None:
 
     client = HabitipyClient(api_key="test-key")
     try:
-        with pytest.raises(ApiError, match="Habit not found") as exc_info:
+        with pytest.raises(NotFoundError, match="Habit not found") as exc_info:
             client.habits.get("missing")
     finally:
         client.close()
@@ -446,5 +534,23 @@ def test_client_habits_get_raises_response_decode_error_for_invalid_json() -> No
     try:
         with pytest.raises(ResponseDecodeError, match="invalid JSON"):
             client.habits.get("habit_123")
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_client_habits_journal_raises_response_decode_error_for_invalid_json() -> None:
+    respx.get("https://api.habitify.me/v2/habits/journal").mock(
+        return_value=httpx.Response(
+            200,
+            content=b"not-json",
+            headers={"Content-Type": "application/json"},
+        )
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(ResponseDecodeError, match="invalid JSON"):
+            client.habits.journal()
     finally:
         client.close()
