@@ -4,13 +4,30 @@ from datetime import date, datetime, time
 from enum import Enum
 from typing import Annotated, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..pagination import Pagination
 
 
 class HabitModel(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+
+def _prune_empty_dicts(value: object) -> object | None:
+    if isinstance(value, dict):
+        pruned = {
+            key: pruned_value
+            for key, item in value.items()
+            if (pruned_value := _prune_empty_dicts(item)) is not None
+        }
+        return pruned or None
+
+    if isinstance(value, list):
+        return [
+            pruned_item for item in value if (pruned_item := _prune_empty_dicts(item)) is not None
+        ]
+
+    return value
 
 
 class HabitType(str, Enum):
@@ -125,6 +142,11 @@ class HabitCreateHabitStack(HabitModel):
 class HabitCreateReminders(HabitModel):
     time_triggers: list[HabitCreateTimeTrigger] = Field(default_factory=list, alias="timeTriggers")
     habit_stacks: list[HabitCreateHabitStack] = Field(default_factory=list, alias="habitStacks")
+
+
+class HabitUpdateReminders(HabitModel):
+    time_triggers: list[HabitCreateTimeTrigger] | None = Field(default=None, alias="timeTriggers")
+    habit_stacks: list[HabitCreateHabitStack] | None = Field(default=None, alias="habitStacks")
 
 
 class Reminders(HabitModel):
@@ -357,6 +379,64 @@ class HabitJournalPage(HabitModel):
     data: list[HabitJournalEntry]
 
 
+class HabitStatisticsUnit(HabitModel):
+    id: str
+    name: str
+    symbol: UnitSymbol | str
+
+    @field_validator("symbol", mode="before")
+    @classmethod
+    def coerce_known_symbol(cls, value: object) -> object:
+        if isinstance(value, str):
+            try:
+                return UnitSymbol(value)
+            except ValueError:
+                return value
+        return value
+
+
+class HabitStatisticsDailyProgress(HabitModel):
+    date: date
+    total_log: float = Field(alias="totalLog")
+    status: HabitJournalStatus
+
+
+class HabitStatistics(HabitModel):
+    id: str
+    name: str
+    type: HabitType
+    total_logs: float = Field(alias="totalLogs")
+    skips: int
+    fails: int
+    completions: int
+    unit: HabitStatisticsUnit
+    periodicity: GoalPeriodicity
+    avg: float
+    daily_progress: list[HabitStatisticsDailyProgress] = Field(
+        default_factory=list, alias="dailyProgress"
+    )
+
+
+class HabitStatisticsResponse(HabitModel):
+    data: HabitStatistics
+
+
+class HabitLogRequest(HabitModel):
+    unit_symbol: UnitSymbol = Field(alias="unitSymbol")
+    value: float
+    target_date: date | None = Field(default=None, alias="targetDate")
+
+    def to_request_body(self) -> dict[str, object]:
+        return cast(
+            dict[str, object],
+            self.model_dump(by_alias=True, exclude_none=True, mode="json"),
+        )
+
+
+class HabitLogResponse(HabitModel):
+    message: str
+
+
 class HabitCreateRequest(HabitModel):
     name: str
     type: HabitType
@@ -377,6 +457,25 @@ class HabitCreateRequest(HabitModel):
             dict[str, object],
             self.model_dump(by_alias=True, exclude_none=True, mode="json"),
         )
+
+
+class HabitUpdateRequest(HabitModel):
+    name: str | None = None
+    description: str | None = None
+    occurrence: HabitCreateOccurrence | None = None
+    start_date: date | None = Field(default=None, alias="startDate")
+    icon: str | None = None
+    color_hex: str | None = Field(default=None, alias="colorHex")
+    custom_unit_name: str | None = Field(default=None, alias="customUnitName")
+    area_ids: list[str] | None = Field(default=None, alias="areaIds")
+    time_of_day_ids: list[str] | None = Field(default=None, alias="timeOfDayIds")
+    goal: HabitCreateGoal | None = None
+    reminders: HabitUpdateReminders | None = None
+    end_condition: HabitCreateEndCondition | None = Field(default=None, alias="endCondition")
+
+    def to_request_body(self) -> dict[str, object]:
+        payload = self.model_dump(by_alias=True, exclude_none=True, mode="json")
+        return cast(dict[str, object], _prune_empty_dicts(payload) or {})
 
 
 class HabitListParams(HabitModel):
@@ -401,6 +500,21 @@ class HabitListParams(HabitModel):
 
 class HabitJournalParams(HabitModel):
     journal_date: date | None = Field(default=None, alias="date")
+
+    def to_query_params(self) -> dict[str, str]:
+        return {
+            key: str(value)
+            for key, value in self.model_dump(
+                by_alias=True,
+                exclude_none=True,
+                mode="json",
+            ).items()
+        }
+
+
+class HabitStatisticsParams(HabitModel):
+    start_date: date | None = Field(default=None, alias="startDate")
+    end_date: date | None = Field(default=None, alias="endDate")
 
     def to_query_params(self) -> dict[str, str]:
         return {
