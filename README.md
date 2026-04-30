@@ -12,6 +12,9 @@ with HabitipyClient(api_key="YOUR_API_KEY") as client:
     page = client.habits.list(limit=25)
     for habit in page.data:
         print(habit.name)
+
+    areas = client.areas.list()
+    print(len(areas.data))
 ```
 
 You can also bring your own `httpx.Client` and keep the context manager on that side. `HabitipyClient` will add the `X-API-Key` header and default Habitify base URL when they are missing:

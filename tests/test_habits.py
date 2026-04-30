@@ -13,11 +13,17 @@ from habitipy import (
     HabitCreateRequest,
     HabitipyClient,
     HabitJournalStatus,
+    HabitLogActionRequest,
     HabitLogRequest,
     HabitLogResponse,
+    HabitNoteCreateRequest,
+    HabitNoteListResponse,
+    HabitNoteUpdateRequest,
     HabitStatisticsResponse,
     HabitType,
     HabitUpdateRequest,
+    MoodLevel,
+    SuccessMessageResponse,
     UnitSymbol,
 )
 from habitipy.errors import (
@@ -171,6 +177,24 @@ def build_habit_statistics_payload() -> dict[str, object]:
 
 def build_habit_log_response_payload() -> dict[str, object]:
     return {"message": "Habit log created successfully"}
+
+
+def build_success_message_payload(message: str) -> dict[str, object]:
+    return {"message": message}
+
+
+def build_habit_note_payload() -> dict[str, object]:
+    return {
+        "id": "note_123",
+        "content": "Solid run today",
+        "moodLevel": "high",
+        "photos": ["https://example.com/photo1.jpg"],
+        "createdAt": "2024-01-02T08:00:00Z",
+    }
+
+
+def build_habit_notes_payload() -> dict[str, object]:
+    return {"data": [build_habit_note_payload()]}
 
 
 @respx.mock
@@ -730,6 +754,190 @@ def test_client_habits_create_log_raises_response_decode_error_for_invalid_json(
             )
     finally:
         client.close()
+
+
+@pytest.mark.parametrize(
+    ("method_name", "path_suffix", "message"),
+    [
+        ("complete_log", "complete", "Habit marked as completed successfully"),
+        ("fail_log", "failed", "Habit marked as failed successfully"),
+        ("skip_log", "skipped", "Habit marked as skipped successfully"),
+        ("undo_log", "undo", "Habit progress undone successfully"),
+    ],
+)
+@respx.mock
+def test_client_habit_log_actions_send_optional_target_date_and_parse_message(
+    method_name: str,
+    path_suffix: str,
+    message: str,
+) -> None:
+    route = respx.post(f"https://api.habitify.me/v2/habits/habit_123/logs/{path_suffix}").mock(
+        return_value=httpx.Response(
+            201 if path_suffix != "undo" else 200, json=build_success_message_payload(message)
+        )
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        response = getattr(client.habits, method_name)(
+            "habit_123",
+            HabitLogActionRequest(target_date=date(2024, 1, 15)),
+        )
+    finally:
+        client.close()
+
+    assert route.called
+    assert json.loads(route.calls[0].request.content.decode("utf-8")) == {
+        "targetDate": "2024-01-15"
+    }
+    assert isinstance(response, SuccessMessageResponse)
+    assert response.message == message
+
+
+@respx.mock
+def test_client_habit_log_actions_omit_request_body_when_no_target_date_is_provided() -> None:
+    route = respx.post("https://api.habitify.me/v2/habits/habit_123/logs/complete").mock(
+        return_value=httpx.Response(
+            201,
+            json=build_success_message_payload("Habit marked as completed successfully"),
+        )
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        response = client.habits.complete_log("habit_123")
+    finally:
+        client.close()
+
+    assert route.called
+    assert route.calls[0].request.content == b""
+    assert response.message == "Habit marked as completed successfully"
+
+
+@respx.mock
+def test_client_habits_delete_log_sends_expected_path_and_parses_response() -> None:
+    route = respx.delete("https://api.habitify.me/v2/habits/habit_123/logs/log_456").mock(
+        return_value=httpx.Response(
+            200,
+            json=build_success_message_payload("Habit log removed successfully"),
+        )
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        response = client.habits.delete_log("habit_123", "log_456")
+    finally:
+        client.close()
+
+    assert route.called
+    assert route.calls[0].request.url.path == "/v2/habits/habit_123/logs/log_456"
+    assert response.message == "Habit log removed successfully"
+
+
+@respx.mock
+def test_client_habits_delete_log_maps_not_found_error() -> None:
+    respx.delete("https://api.habitify.me/v2/habits/habit_123/logs/missing").mock(
+        return_value=httpx.Response(404, json={"message": "Habit or log entry not found"})
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(NotFoundError, match="Habit or log entry not found"):
+            client.habits.delete_log("habit_123", "missing")
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_client_habits_list_notes_parses_response() -> None:
+    route = respx.get("https://api.habitify.me/v2/habits/habit_123/notes").mock(
+        return_value=httpx.Response(200, json=build_habit_notes_payload())
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        notes = client.habits.list_notes("habit_123")
+    finally:
+        client.close()
+
+    assert route.called
+    assert isinstance(notes, HabitNoteListResponse)
+    assert notes.data[0].mood_level is MoodLevel.HIGH
+    assert notes.data[0].photos == ["https://example.com/photo1.jpg"]
+
+
+@respx.mock
+def test_client_habits_create_note_sends_expected_json_and_parses_response() -> None:
+    route = respx.post("https://api.habitify.me/v2/habits/habit_123/notes").mock(
+        return_value=httpx.Response(201, json=build_habit_note_payload())
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        note = client.habits.create_note(
+            "habit_123",
+            HabitNoteCreateRequest(
+                content="Solid run today",
+                mood_level=MoodLevel.HIGH,
+                photos=["https://example.com/photo1.jpg"],
+            ),
+        )
+    finally:
+        client.close()
+
+    assert route.called
+    assert json.loads(route.calls[0].request.content.decode("utf-8")) == {
+        "content": "Solid run today",
+        "moodLevel": "high",
+        "photos": ["https://example.com/photo1.jpg"],
+    }
+    assert note.id == "note_123"
+    assert note.mood_level is MoodLevel.HIGH
+
+
+@respx.mock
+def test_client_habits_update_note_sends_expected_json_and_parses_response() -> None:
+    route = respx.put("https://api.habitify.me/v2/habits/habit_123/notes/note_123").mock(
+        return_value=httpx.Response(200, json=build_habit_note_payload())
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        note = client.habits.update_note(
+            "habit_123",
+            "note_123",
+            HabitNoteUpdateRequest(content="Updated note"),
+        )
+    finally:
+        client.close()
+
+    assert route.called
+    assert json.loads(route.calls[0].request.content.decode("utf-8")) == {"content": "Updated note"}
+    assert note.id == "note_123"
+
+
+@respx.mock
+def test_client_habits_delete_note_returns_none_on_204() -> None:
+    route = respx.delete("https://api.habitify.me/v2/habits/habit_123/notes/note_123").mock(
+        return_value=httpx.Response(204)
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        result = client.habits.delete_note("habit_123", "note_123")
+    finally:
+        client.close()
+
+    assert route.called
+    assert result is None
+
+
+def test_habit_note_requests_require_at_least_one_field() -> None:
+    with pytest.raises(ValidationError, match="At least one note field must be provided"):
+        HabitNoteCreateRequest()
+
+    with pytest.raises(ValidationError, match="At least one note field must be provided"):
+        HabitNoteUpdateRequest()
 
 
 @respx.mock
