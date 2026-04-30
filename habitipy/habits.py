@@ -50,6 +50,10 @@ class HabitsResource:
         payload = _decode_json_object(response)
         return Habit.model_validate(payload)
 
+    def archive(self, habit_id: str) -> None:
+        response = self._client.post(f"/habits/{habit_id}/archive")
+        raise_for_api_status(response)
+
     def journal(self, *, date: date | None = None) -> HabitJournalPage:
         params = HabitJournalParams(journal_date=date)
         response = self._client.get("/habits/journal", params=params.to_query_params())
