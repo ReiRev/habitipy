@@ -54,7 +54,14 @@ def build_habits_payload() -> dict[str, object]:
                             "showAsAlarm": False,
                         }
                     ],
-                    "habitStacks": [],
+                    "habitStacks": [
+                        {
+                            "id": "stack_1",
+                            "conditionHabitId": "habit_456",
+                            "type": "completed",
+                            "timerType": "immediately",
+                        }
+                    ],
                 },
                 "endCondition": None,
                 "goals": [
@@ -129,6 +136,9 @@ def test_client_habits_list_sends_expected_query_params_and_parses_response() ->
     assert page.pagination.total == 1
     assert page.data[0].type is HabitType.GOOD
     assert page.data[0].time_of_days[0].name == "Morning"
+    assert page.data[0].reminders.habit_stacks[0].type is HabitStackTriggerType.COMPLETED
+    assert page.data[0].reminders.habit_stacks[0].timer_type is HabitStackTimerType.IMMEDIATELY
+    assert page.data[0].reminders.habit_stacks[0].timer_delay_secs is None
 
 
 @respx.mock
@@ -205,6 +215,9 @@ def test_client_habits_create_sends_expected_json_and_parses_response() -> None:
     assert habit.id == "habit_123"
     assert habit.name == "Morning Run"
     assert habit.type is HabitType.GOOD
+    assert habit.reminders.habit_stacks[0].type is HabitStackTriggerType.COMPLETED
+    assert habit.reminders.habit_stacks[0].timer_type is HabitStackTimerType.IMMEDIATELY
+    assert habit.reminders.habit_stacks[0].timer_delay_secs is None
 
 
 @respx.mock

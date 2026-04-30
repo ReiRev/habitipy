@@ -92,9 +92,9 @@ class TimeTrigger(HabitModel):
 class HabitStack(HabitModel):
     id: str | None = None
     condition_habit_id: str = Field(alias="conditionHabitId")
-    type: str
-    timer_type: str = Field(alias="timerType")
-    timer_delay_secs: int = Field(alias="timerDelaySecs")
+    type: HabitStackTriggerType
+    timer_type: HabitStackTimerType = Field(alias="timerType")
+    timer_delay_secs: int | None = Field(default=None, alias="timerDelaySecs")
 
 
 class HabitCreateReminderTime(HabitModel):
