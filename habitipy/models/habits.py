@@ -127,6 +127,11 @@ class HabitCreateReminders(HabitModel):
     habit_stacks: list[HabitCreateHabitStack] = Field(default_factory=list, alias="habitStacks")
 
 
+class HabitUpdateReminders(HabitModel):
+    time_triggers: list[HabitCreateTimeTrigger] | None = Field(default=None, alias="timeTriggers")
+    habit_stacks: list[HabitCreateHabitStack] | None = Field(default=None, alias="habitStacks")
+
+
 class Reminders(HabitModel):
     time_triggers: list[TimeTrigger] = Field(default_factory=list, alias="timeTriggers")
     habit_stacks: list[HabitStack] = Field(default_factory=list, alias="habitStacks")
@@ -370,6 +375,27 @@ class HabitCreateRequest(HabitModel):
     time_of_day_ids: list[str] | None = Field(default=None, alias="timeOfDayIds")
     goal: HabitCreateGoal | None = None
     reminders: HabitCreateReminders | None = None
+    end_condition: HabitCreateEndCondition | None = Field(default=None, alias="endCondition")
+
+    def to_request_body(self) -> dict[str, object]:
+        return cast(
+            dict[str, object],
+            self.model_dump(by_alias=True, exclude_none=True, mode="json"),
+        )
+
+
+class HabitUpdateRequest(HabitModel):
+    name: str | None = None
+    description: str | None = None
+    occurrence: HabitCreateOccurrence | None = None
+    start_date: date | None = Field(default=None, alias="startDate")
+    icon: str | None = None
+    color_hex: str | None = Field(default=None, alias="colorHex")
+    custom_unit_name: str | None = Field(default=None, alias="customUnitName")
+    area_ids: list[str] | None = Field(default=None, alias="areaIds")
+    time_of_day_ids: list[str] | None = Field(default=None, alias="timeOfDayIds")
+    goal: HabitCreateGoal | None = None
+    reminders: HabitUpdateReminders | None = None
     end_condition: HabitCreateEndCondition | None = Field(default=None, alias="endCondition")
 
     def to_request_body(self) -> dict[str, object]:

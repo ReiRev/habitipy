@@ -17,6 +17,7 @@ from .models.habits import (
     HabitJournalStatus,
     HabitListPage,
     HabitType,
+    HabitUpdateRequest,
     UnitSymbol,
 )
 
@@ -30,6 +31,7 @@ __all__ = [
     "HabitJournalPage",
     "HabitJournalStatus",
     "HabitListPage",
+    "HabitUpdateRequest",
     "HabitType",
     "HabitipyClient",
     "NotFoundError",
