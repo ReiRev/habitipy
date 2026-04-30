@@ -79,3 +79,10 @@ For the declared support matrix, use `tox`:
 ```bash
 poetry run tox run -e py310,py311,py312,py313
 ```
+
+## CI
+
+GitHub Actions runs the same local commands on every pull request and on pushes to `main`:
+
+- `poetry run tox run -e quality`
+- `poetry run tox run -e py310,py311,py312,py313`
