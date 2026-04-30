@@ -52,7 +52,7 @@ Agents should verify endpoint details against the OpenAPI spec before implementi
 ### HTTP stack
 
 - Use `httpx`.
-- Keep HTTP concerns in a dedicated transport layer.
+- Keep HTTP concerns isolated from resource logic, but do not add a thin transport wrapper when direct `httpx.Client` injection is enough.
 - Centralize auth header handling, timeout configuration, error mapping, and response parsing.
 
 ### Public API shape
@@ -99,7 +99,6 @@ This is guidance, not a locked file tree.
 ```text
 habitipy/
   __init__.py
-  transport.py
   errors.py
   pagination.py
   habits.py

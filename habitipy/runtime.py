@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-from .client import HabitipyClient
+import httpx
+
+from .client import DEFAULT_BASE_URL, DEFAULT_TIMEOUT, HabitipyClient
 from .models.habits import HabitListPage, HabitType
-from .transport import DEFAULT_BASE_URL, DEFAULT_TIMEOUT
 
 _default_client: HabitipyClient | None = None
 
 
 def configure(
     *,
-    api_key: str,
+    api_key: str | None = None,
+    client: httpx.Client | None = None,
     base_url: str = DEFAULT_BASE_URL,
     timeout: float = DEFAULT_TIMEOUT,
 ) -> HabitipyClient:
@@ -18,7 +20,7 @@ def configure(
     if _default_client is not None:
         _default_client.close()
 
-    _default_client = HabitipyClient(api_key=api_key, base_url=base_url, timeout=timeout)
+    _default_client = HabitipyClient(api_key=api_key, client=client, base_url=base_url, timeout=timeout)
     return _default_client
 
 

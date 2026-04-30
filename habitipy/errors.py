@@ -5,36 +5,24 @@ from typing import Any
 import httpx
 
 
-class HabitipyError(Exception):
-    """Base exception for habitipy."""
-
-
-class NetworkError(HabitipyError):
-    """Raised when an HTTP transport failure prevents a response from being received."""
-
-
-class TimeoutError(NetworkError):
-    """Raised when an HTTP request times out."""
-
-
-class ResponseDecodeError(HabitipyError):
+class ResponseDecodeError(httpx.DecodingError):
     """Raised when a response body cannot be decoded as JSON."""
 
 
-class UnexpectedResponseShapeError(HabitipyError):
+class UnexpectedResponseShapeError(ResponseDecodeError):
     """Raised when a response JSON payload does not match the expected top-level shape."""
 
 
-class ApiError(HabitipyError):
+class ApiError(httpx.HTTPStatusError):
     def __init__(
         self,
-        status_code: int,
         message: str,
         *,
+        request: httpx.Request,
+        response: httpx.Response,
         payload: Any | None = None,
     ) -> None:
-        super().__init__(message)
-        self.status_code = status_code
+        super().__init__(message, request=request, response=response)
         self.payload = payload
 
 
@@ -58,9 +46,18 @@ class ServerError(ApiError):
     """Raised when the Habitify API returns a server-side error."""
 
 
-def api_error_from_response(response: httpx.Response) -> ApiError:
+def raise_for_api_status(response: httpx.Response) -> None:
     payload: Any | None = None
     message = response.reason_phrase
+    cause: httpx.HTTPStatusError | None = None
+
+    try:
+        response.raise_for_status()
+        return
+    except httpx.HTTPStatusError as exc:
+        cause = exc
+        request = exc.request
+        response = exc.response
 
     try:
         payload = response.json()
@@ -88,4 +85,4 @@ def api_error_from_response(response: httpx.Response) -> ApiError:
     else:
         error_cls = ApiError
 
-    return error_cls(response.status_code, message, payload=payload)
+    raise error_cls(message, request=request, response=response, payload=payload) from cause

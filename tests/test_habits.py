@@ -6,7 +6,7 @@ import respx
 
 import habitipy
 from habitipy import HabitType, HabitipyClient
-from habitipy.errors import RateLimitError, TimeoutError, UnexpectedResponseShapeError
+from habitipy.errors import RateLimitError, UnexpectedResponseShapeError
 
 
 def build_habits_payload() -> dict[str, object]:
@@ -107,6 +107,29 @@ def test_client_habits_list_sends_expected_query_params_and_parses_response() ->
     assert page.data[0].time_of_days[0].name == "Morning"
 
 
+@respx.mock
+def test_client_habits_list_uses_injected_httpx_client() -> None:
+    route = respx.get("https://api.habitify.me/v2/habits").mock(
+        return_value=httpx.Response(200, json=build_habits_payload())
+    )
+
+    injected_client = httpx.Client(
+        base_url="https://api.habitify.me/v2",
+        headers={"X-API-Key": "injected-key"},
+    )
+
+    client = HabitipyClient(client=injected_client)
+    try:
+        page = client.habits.list(limit=25)
+        client.close()
+        assert not injected_client.is_closed
+    finally:
+        injected_client.close()
+
+    assert route.calls[0].request.headers["X-API-Key"] == "injected-key"
+    assert page.data[0].name == "Morning Run"
+
+
 def test_package_level_habits_list_requires_configuration() -> None:
     habitipy.reset()
 
@@ -152,12 +175,12 @@ def test_client_habits_list_maps_rate_limit_error() -> None:
 
 
 @respx.mock
-def test_client_habits_list_wraps_timeout_errors() -> None:
+def test_client_habits_list_raises_httpx_timeout_errors() -> None:
     respx.get("https://api.habitify.me/v2/habits").mock(side_effect=httpx.ReadTimeout("timed out"))
 
     client = HabitipyClient(api_key="test-key")
     try:
-        with pytest.raises(TimeoutError, match="timed out"):
+        with pytest.raises(httpx.ReadTimeout, match="timed out"):
             client.habits.list()
     finally:
         client.close()
