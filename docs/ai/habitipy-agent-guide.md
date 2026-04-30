@@ -56,11 +56,12 @@ Agents should verify endpoint details against the OpenAPI spec before implementi
 - Centralize auth header handling, timeout configuration, error mapping, and response parsing.
 - Prefer native `httpx` exceptions when they already express the failure clearly; add custom subclasses only for Habitify-specific semantics such as rate limiting or auth-specific handling.
 
-### Formatting and linting
+### Code quality
 
-- Use Ruff for both formatting and linting.
-- After Python changes, run `poetry run ruff format` and `poetry run ruff check` on the touched Python files.
-- Do not skip Ruff validation when changing Python code.
+- Use Black for formatting, isort for import ordering, Ruff for linting, and mypy for static type checking.
+- After Python changes, run `poetry run isort`, `poetry run black`, `poetry run ruff check`, and `poetry run mypy habitipy`.
+- Keep pre-commit configured so the same checks can run automatically before commits.
+- Do not skip these validations when changing Python code.
 
 ### Public API shape
 

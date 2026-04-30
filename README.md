@@ -34,15 +34,30 @@ Use Poetry for local development:
 
 ```bash
 poetry install --extras dev
+poetry run pre-commit install
 ```
 
-## Format And Lint
+## Code Quality
 
-Run Ruff before finishing Python changes.
+Run the full local quality pass before finishing Python changes.
 
 ```bash
-poetry run ruff format habitipy tests
+poetry run isort habitipy tests
+poetry run black habitipy tests
 poetry run ruff check habitipy tests
+poetry run mypy habitipy
+```
+
+If you want the same checks behind one command, use the dedicated tox env:
+
+```bash
+poetry run tox run -e quality
+```
+
+Pre-commit is configured for the same quality stack:
+
+```bash
+poetry run pre-commit run --all-files
 ```
 
 ## Running Tests
@@ -51,6 +66,12 @@ Run the focused test slice with Poetry:
 
 ```bash
 poetry run pytest tests/test_habits.py
+```
+
+For a quick coverage report:
+
+```bash
+poetry run pytest --cov=habitipy --cov-report=term-missing
 ```
 
 For the declared support matrix, use `tox`:

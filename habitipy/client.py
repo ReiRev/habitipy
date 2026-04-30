@@ -21,10 +21,15 @@ class HabitipyClient:
             raise ValueError("api_key is required when client is not provided.")
 
         self._owns_client = client is None
+        default_headers: dict[str, str] | None = None
+        if client is None:
+            assert api_key is not None
+            default_headers = {API_KEY_HEADER: api_key}
+
         self._client = client or httpx.Client(
             base_url=base_url.rstrip("/"),
             timeout=DEFAULT_TIMEOUT,
-            headers={API_KEY_HEADER: api_key},
+            headers=default_headers,
         )
 
         if client is not None:
