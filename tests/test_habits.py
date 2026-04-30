@@ -1,0 +1,177 @@
+from __future__ import annotations
+
+import httpx
+import pytest
+import respx
+
+import habitipy
+from habitipy import HabitType, HabitipyClient
+from habitipy.errors import RateLimitError, TimeoutError, UnexpectedResponseShapeError
+
+
+def build_habits_payload() -> dict[str, object]:
+    return {
+        "data": [
+            {
+                "id": "habit_123",
+                "name": "Morning Run",
+                "icon": "figure.run",
+                "colorHex": "#FF6B6B",
+                "type": "good",
+                "description": "Run before breakfast",
+                "occurrence": {"type": "daily"},
+                "startDate": "2024-01-01",
+                "createdAt": "2024-01-01T06:30:00Z",
+                "isArchived": False,
+                "logMethod": "manual",
+                "challengeId": "challenge_1",
+                "reminders": {
+                    "timeTriggers": [
+                        {
+                            "time": {"hour": 6, "minute": 30},
+                            "occurrenceFilter": {"weekDays": [2, 3, 4, 5, 6]},
+                            "showLiveActivity": True,
+                            "showAsAlarm": False,
+                        }
+                    ],
+                    "habitStacks": [],
+                },
+                "endCondition": None,
+                "goals": [
+                    {
+                        "id": "goal_1",
+                        "createdAt": "2024-01-01T06:30:00Z",
+                        "periodicity": "daily",
+                        "value": 5,
+                        "unit": "kM",
+                        "isActive": True,
+                    }
+                ],
+                "customUnitName": None,
+                "areas": [
+                    {
+                        "id": "area_1",
+                        "name": "Health",
+                        "colorHex": "#4ECDC4",
+                        "icon": "heart",
+                        "createdAt": "2024-01-01T06:00:00Z",
+                        "description": "Health habits",
+                    }
+                ],
+                "timeOfDays": [
+                    {
+                        "id": "tod_1",
+                        "name": "Morning",
+                        "icon": "sun.max",
+                        "startTime": "06:00:00",
+                        "endTime": "11:59:59",
+                        "colorHex": "#FFD93D",
+                    }
+                ],
+            }
+        ],
+        "pagination": {"total": 1, "limit": 25, "offset": 0},
+    }
+
+
+@respx.mock
+def test_client_habits_list_sends_expected_query_params_and_parses_response() -> None:
+    route = respx.get("https://api.habitify.me/v2/habits").mock(
+        return_value=httpx.Response(200, json=build_habits_payload())
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        page = client.habits.list(
+            archived=False,
+            area_id="area_1",
+            habit_type=HabitType.GOOD,
+            time_of_day="tod_1",
+            limit=25,
+            offset=0,
+        )
+    finally:
+        client.close()
+
+    request = route.calls[0].request
+    assert request.headers["X-API-Key"] == "test-key"
+    assert request.url.params["archived"] == "false"
+    assert request.url.params["areaId"] == "area_1"
+    assert request.url.params["type"] == "good"
+    assert request.url.params["timeOfDay"] == "tod_1"
+    assert request.url.params["limit"] == "25"
+    assert request.url.params["offset"] == "0"
+
+    assert page.pagination.total == 1
+    assert page.data[0].type is HabitType.GOOD
+    assert page.data[0].time_of_days[0].name == "Morning"
+
+
+def test_package_level_habits_list_requires_configuration() -> None:
+    habitipy.reset()
+
+    with pytest.raises(RuntimeError, match="habitipy.configure"):
+        habitipy.habits.list()
+
+
+@respx.mock
+def test_package_level_habits_list_uses_configured_client() -> None:
+    route = respx.get("https://api.habitify.me/v2/habits").mock(
+        return_value=httpx.Response(200, json=build_habits_payload())
+    )
+
+    habitipy.reset()
+    habitipy.configure(api_key="configured-key")
+    try:
+        page = habitipy.habits.list(limit=25)
+    finally:
+        habitipy.reset()
+
+    assert route.calls[0].request.headers["X-API-Key"] == "configured-key"
+    assert page.data[0].name == "Morning Run"
+
+
+@respx.mock
+def test_client_habits_list_maps_rate_limit_error() -> None:
+    respx.get("https://api.habitify.me/v2/habits").mock(
+        return_value=httpx.Response(
+            429,
+            json={
+                "error": "Too Many Requests",
+                "message": "Rate limit exceeded. Please wait before making more requests.",
+            },
+        )
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(RateLimitError, match="Rate limit exceeded"):
+            client.habits.list()
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_client_habits_list_wraps_timeout_errors() -> None:
+    respx.get("https://api.habitify.me/v2/habits").mock(side_effect=httpx.ReadTimeout("timed out"))
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(TimeoutError, match="timed out"):
+            client.habits.list()
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_client_habits_list_rejects_non_object_payloads() -> None:
+    respx.get("https://api.habitify.me/v2/habits").mock(
+        return_value=httpx.Response(200, json=[])
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(UnexpectedResponseShapeError, match="JSON object"):
+            client.habits.list()
+    finally:
+        client.close()
