@@ -313,6 +313,50 @@ class HabitListPage(HabitModel):
     pagination: Pagination
 
 
+class HabitJournalStatus(str, Enum):
+    COMPLETED = "completed"
+    SKIPPED = "skipped"
+    FAILED = "failed"
+    IN_PROGRESS = "inprogress"
+
+
+class HabitJournalStreakUnit(str, Enum):
+    DAY = "day"
+
+
+class HabitJournalCurrentStreak(HabitModel):
+    length: int
+    unit: HabitJournalStreakUnit
+
+
+class HabitJournalProgress(HabitModel):
+    current: float
+    target: float
+    unit: str
+    periodicity: GoalPeriodicity
+
+
+class HabitJournalLogInfo(HabitModel):
+    type: LogMethod
+
+
+class HabitJournalEntry(HabitModel):
+    id: str
+    name: str
+    status: HabitJournalStatus
+    color_hex: str | None = Field(default=None, alias="colorHex")
+    icon: str | None = None
+    time_of_day_ids: list[str] = Field(default_factory=list, alias="timeOfDayIds")
+    type: HabitType
+    current_streak: HabitJournalCurrentStreak | None = Field(default=None, alias="currentStreak")
+    progress: HabitJournalProgress | None = None
+    log_info: HabitJournalLogInfo | None = Field(default=None, alias="logInfo")
+
+
+class HabitJournalPage(HabitModel):
+    data: list[HabitJournalEntry]
+
+
 class HabitCreateRequest(HabitModel):
     name: str
     type: HabitType
@@ -353,3 +397,17 @@ class HabitListParams(HabitModel):
             else:
                 serialized[key] = str(value)
         return serialized
+
+
+class HabitJournalParams(HabitModel):
+    journal_date: date | None = Field(default=None, alias="date")
+
+    def to_query_params(self) -> dict[str, str]:
+        return {
+            key: str(value)
+            for key, value in self.model_dump(
+                by_alias=True,
+                exclude_none=True,
+                mode="json",
+            ).items()
+        }

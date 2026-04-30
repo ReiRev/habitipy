@@ -1,11 +1,20 @@
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 import httpx
 
 from .errors import ResponseDecodeError, UnexpectedResponseShapeError, raise_for_api_status
-from .models.habits import Habit, HabitCreateRequest, HabitListPage, HabitListParams, HabitType
+from .models.habits import (
+    Habit,
+    HabitCreateRequest,
+    HabitJournalPage,
+    HabitJournalParams,
+    HabitListPage,
+    HabitListParams,
+    HabitType,
+)
 
 
 class HabitsResource:
@@ -40,6 +49,13 @@ class HabitsResource:
         raise_for_api_status(response)
         payload = _decode_json_object(response)
         return Habit.model_validate(payload)
+
+    def journal(self, *, date: date | None = None) -> HabitJournalPage:
+        params = HabitJournalParams(journal_date=date)
+        response = self._client.get("/habits/journal", params=params.to_query_params())
+        raise_for_api_status(response)
+        payload = _decode_json_object(response)
+        return HabitJournalPage.model_validate(payload)
 
 
 def _decode_json_object(response: httpx.Response) -> dict[str, Any]:
