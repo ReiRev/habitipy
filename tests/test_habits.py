@@ -13,6 +13,9 @@ from habitipy import (
     HabitCreateRequest,
     HabitipyClient,
     HabitJournalStatus,
+    HabitLogRequest,
+    HabitLogResponse,
+    HabitStatisticsResponse,
     HabitType,
     HabitUpdateRequest,
     UnitSymbol,
@@ -20,6 +23,7 @@ from habitipy import (
 from habitipy.errors import (
     ApiError,
     AuthenticationError,
+    NotFoundError,
     RateLimitError,
     ResponseDecodeError,
     UnexpectedResponseShapeError,
@@ -138,6 +142,72 @@ def build_habit_journal_payload() -> dict[str, object]:
             }
         ]
     }
+
+
+def build_habit_statistics_payload() -> dict[str, object]:
+    return {
+        "data": {
+            "id": "habit_123",
+            "name": "Morning Run",
+            "type": "good",
+            "totalLogs": 12.5,
+            "skips": 1,
+            "fails": 2,
+            "completions": 3,
+            "unit": {
+                "id": "unit_1",
+                "name": "Kilometer",
+                "symbol": UnitSymbol.KM.value,
+            },
+            "periodicity": "daily",
+            "avg": 1.25,
+            "dailyProgress": [
+                {"date": "2024-01-01", "totalLog": 5, "status": "completed"},
+                {"date": "2024-01-02", "totalLog": 0, "status": "inprogress"},
+            ],
+        }
+    }
+
+
+def build_habit_log_response_payload() -> dict[str, object]:
+    return {"message": "Habit log created successfully"}
+
+
+@respx.mock
+def test_client_habits_get_sends_expected_path_and_parses_response() -> None:
+    route = respx.get("https://api.habitify.me/v2/habits/habit_123").mock(
+        return_value=httpx.Response(200, json=build_habit_payload())
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        habit = client.habits.get("habit_123")
+    finally:
+        client.close()
+
+    request = route.calls[0].request
+    assert request.headers["X-API-Key"] == "test-key"
+    assert request.url.path == "/v2/habits/habit_123"
+    assert habit.id == "habit_123"
+    assert habit.type is HabitType.GOOD
+    assert habit.time_of_days[0].name == "Morning"
+
+
+@respx.mock
+def test_client_habits_get_url_encodes_path_segment() -> None:
+    route = respx.get("https://api.habitify.me/v2/habits/habit%2Fwith%20spaces%3F%23").mock(
+        return_value=httpx.Response(200, json=build_habit_payload())
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        habit = client.habits.get("habit/with spaces?#")
+    finally:
+        client.close()
+
+    assert route.called
+    assert route.calls[0].request.url.raw_path == b"/v2/habits/habit%2Fwith%20spaces%3F%23"
+    assert habit.id == "habit_123"
 
 
 @respx.mock
@@ -400,6 +470,188 @@ def test_client_habits_journal_sends_expected_query_params_and_parses_response()
 
 
 @respx.mock
+def test_client_habits_statistics_sends_expected_query_params_and_parses_response() -> None:
+    route = respx.get("https://api.habitify.me/v2/habits/habit_123/statistics").mock(
+        return_value=httpx.Response(200, json=build_habit_statistics_payload())
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        statistics = client.habits.statistics(
+            "habit_123",
+            start_date=date(2024, 1, 1),
+            end_date=date(2024, 1, 31),
+        )
+    finally:
+        client.close()
+
+    request = route.calls[0].request
+    assert request.headers["X-API-Key"] == "test-key"
+    assert request.url.params["startDate"] == "2024-01-01"
+    assert request.url.params["endDate"] == "2024-01-31"
+
+    assert isinstance(statistics, HabitStatisticsResponse)
+    assert statistics.data.id == "habit_123"
+    assert statistics.data.type is HabitType.GOOD
+    assert statistics.data.total_logs == 12.5
+    assert statistics.data.skips == 1
+    assert statistics.data.fails == 2
+    assert statistics.data.completions == 3
+    assert statistics.data.unit.symbol is UnitSymbol.KM
+    assert statistics.data.periodicity is GoalPeriodicity.DAILY
+    assert statistics.data.avg == 1.25
+    assert statistics.data.daily_progress[0].status is HabitJournalStatus.COMPLETED
+    assert statistics.data.daily_progress[1].status is HabitJournalStatus.IN_PROGRESS
+
+
+@respx.mock
+def test_client_habits_statistics_maps_bad_request_error() -> None:
+    respx.get("https://api.habitify.me/v2/habits/habit_123/statistics").mock(
+        return_value=httpx.Response(400, json={"message": "Invalid date range"})
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(ApiError, match="Invalid date range"):
+            client.habits.statistics(
+                "habit_123",
+                start_date=date(2024, 1, 1),
+                end_date=date(2024, 1, 31),
+            )
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_client_habits_statistics_maps_not_found_error() -> None:
+    respx.get("https://api.habitify.me/v2/habits/missing/statistics").mock(
+        return_value=httpx.Response(404, json={"message": "Habit not found"})
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(ApiError, match="Habit not found") as exc_info:
+            client.habits.statistics("missing")
+    finally:
+        client.close()
+
+    assert exc_info.value.response.status_code == 404
+
+
+@respx.mock
+def test_client_habits_statistics_raises_response_decode_error_for_invalid_json() -> None:
+    respx.get("https://api.habitify.me/v2/habits/habit_123/statistics").mock(
+        return_value=httpx.Response(
+            200,
+            content=b"not-json",
+            headers={"Content-Type": "application/json"},
+        )
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(ResponseDecodeError, match="invalid JSON"):
+            client.habits.statistics("habit_123")
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_client_habits_create_log_sends_expected_body_and_parses_response() -> None:
+    route = respx.post("https://api.habitify.me/v2/habits/habit_123/logs").mock(
+        return_value=httpx.Response(201, json=build_habit_log_response_payload())
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        response = client.habits.create_log(
+            "habit_123",
+            HabitLogRequest(
+                unit_symbol=UnitSymbol.KM,
+                value=5,
+                target_date=date(2024, 1, 31),
+            ),
+        )
+    finally:
+        client.close()
+
+    request = route.calls[0].request
+    assert request.headers["X-API-Key"] == "test-key"
+    assert json.loads(request.content) == {
+        "unitSymbol": "kM",
+        "value": 5,
+        "targetDate": "2024-01-31",
+    }
+
+    assert isinstance(response, HabitLogResponse)
+    assert response.message == "Habit log created successfully"
+
+
+@pytest.mark.parametrize(
+    ("status_code", "message"),
+    [
+        (400, "Invalid input data"),
+        (422, "Validation error"),
+    ],
+)
+@respx.mock
+def test_client_habits_create_log_maps_client_errors(status_code: int, message: str) -> None:
+    respx.post("https://api.habitify.me/v2/habits/habit_123/logs").mock(
+        return_value=httpx.Response(status_code, json={"message": message})
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(ApiError, match=message):
+            client.habits.create_log(
+                "habit_123",
+                HabitLogRequest(unit_symbol=UnitSymbol.KM, value=5),
+            )
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_client_habits_create_log_maps_not_found_error() -> None:
+    respx.post("https://api.habitify.me/v2/habits/missing/logs").mock(
+        return_value=httpx.Response(404, json={"message": "Habit not found"})
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(ApiError, match="Habit not found") as exc_info:
+            client.habits.create_log(
+                "missing",
+                HabitLogRequest(unit_symbol=UnitSymbol.KM, value=5),
+            )
+    finally:
+        client.close()
+
+    assert exc_info.value.response.status_code == 404
+
+
+@respx.mock
+def test_client_habits_create_log_raises_response_decode_error_for_invalid_json() -> None:
+    respx.post("https://api.habitify.me/v2/habits/habit_123/logs").mock(
+        return_value=httpx.Response(
+            201,
+            content=b"not-json",
+            headers={"Content-Type": "application/json"},
+        )
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(ResponseDecodeError, match="invalid JSON"):
+            client.habits.create_log(
+                "habit_123",
+                HabitLogRequest(unit_symbol=UnitSymbol.KM, value=5),
+            )
+    finally:
+        client.close()
+
+
+@respx.mock
 def test_client_habits_list_uses_injected_httpx_client() -> None:
     route = respx.get("https://api.habitify.me/v2/habits").mock(
         return_value=httpx.Response(200, json=build_habits_payload())
@@ -510,6 +762,22 @@ def test_client_habits_journal_maps_bad_request_error() -> None:
 
 
 @respx.mock
+def test_client_habits_get_maps_not_found_error() -> None:
+    respx.get("https://api.habitify.me/v2/habits/missing").mock(
+        return_value=httpx.Response(404, json={"message": "Habit not found"})
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(NotFoundError, match="Habit not found") as exc_info:
+            client.habits.get("missing")
+    finally:
+        client.close()
+
+    assert exc_info.value.response.status_code == 404
+
+
+@respx.mock
 def test_client_habits_list_maps_rate_limit_error() -> None:
     respx.get("https://api.habitify.me/v2/habits").mock(
         return_value=httpx.Response(
@@ -585,6 +853,24 @@ def test_client_habits_create_raises_response_decode_error_for_invalid_json() ->
     try:
         with pytest.raises(ResponseDecodeError, match="invalid JSON"):
             client.habits.create(HabitCreateRequest(name="Morning Run", type=HabitType.GOOD))
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_client_habits_get_raises_response_decode_error_for_invalid_json() -> None:
+    respx.get("https://api.habitify.me/v2/habits/habit_123").mock(
+        return_value=httpx.Response(
+            200,
+            content=b"not-json",
+            headers={"Content-Type": "application/json"},
+        )
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(ResponseDecodeError, match="invalid JSON"):
+            client.habits.get("habit_123")
     finally:
         client.close()
 
