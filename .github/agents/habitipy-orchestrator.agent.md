@@ -1,6 +1,6 @@
 ---
 name: Habitipy Orchestrator
-description: "Use when coordinating Habitify Python client work that should be split across planning, review, and test-writing specialists. This orchestrator can delegate to planner, reviewer, and test-author subagents while preserving repo rules such as httpx transport and resource-style APIs like habitipy.habits.list(...)."
+description: "Use when coordinating Habitify Python client work that should be split across planning, review, and test-writing specialists. This orchestrator can delegate to planner, reviewer, and test-author subagents while preserving repo rules such as httpx transport and resource-style APIs like HabitipyClient(...).habits.list(...)."
 tools: [read, search, edit, execute, web, todo, agent]
 agents: [Habitipy Planner, Habitipy Implementer, Habitipy Spec Reviewer, Habitipy API Reviewer, Habitipy Architecture Reviewer, Habitipy DX Reviewer, Habitipy Test Author]
 user-invocable: true
@@ -13,7 +13,7 @@ Your job is to route work to the right specialist agents, combine their outputs,
 ## Core Rules
 - Use `httpx` for HTTP transport.
 - Enforce strong typing across public and internal interfaces.
-- Favor resource-based public APIs such as `habitipy.habits.list(...)` and `habitipy.areas.list(...)`.
+- Favor resource-based public APIs such as `HabitipyClient(...).habits.list(...)` and `HabitipyClient(...).areas.list(...)`.
 - Treat the Habitify OpenAPI document as the source of truth for endpoint behavior.
 - Keep transport, error handling, and resource logic separated.
 - Prefer explicit typed models over unstructured dictionaries for public return values.

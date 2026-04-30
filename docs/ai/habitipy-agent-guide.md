@@ -8,10 +8,10 @@ This document is for AI agents working in this repository.
 
 Primary examples:
 
-- `habitipy.habits.list()`
-- `habitipy.habits.get(habit_id)`
-- `habitipy.habits.create(payload)`
-- `habitipy.areas.list()`
+- `HabitipyClient(...).habits.list()`
+- `HabitipyClient(...).habits.get(habit_id)`
+- `HabitipyClient(...).habits.create(payload)`
+- `HabitipyClient(...).areas.list()`
 
 Avoid centering the public API around flat transport methods such as `list_habits()` unless the user explicitly asks for a compatibility wrapper.
 
@@ -52,14 +52,22 @@ Agents should verify endpoint details against the OpenAPI spec before implementi
 ### HTTP stack
 
 - Use `httpx`.
-- Keep HTTP concerns in a dedicated transport layer.
+- Keep HTTP concerns isolated from resource logic, but do not add a thin transport wrapper when direct `httpx.Client` injection is enough.
 - Centralize auth header handling, timeout configuration, error mapping, and response parsing.
+- Prefer native `httpx` exceptions when they already express the failure clearly; add custom subclasses only for Habitify-specific semantics such as rate limiting or auth-specific handling.
+
+### Code quality
+
+- Use Black for formatting, isort for import ordering, Ruff for linting, and mypy for static type checking.
+- After Python changes, run `poetry run isort`, `poetry run black`, `poetry run ruff check`, and `poetry run mypy habitipy`.
+- Keep pre-commit configured so the same checks can run automatically before commits.
+- Do not skip these validations when changing Python code.
 
 ### Public API shape
 
 - Favor namespaced resources.
-- The intended package ergonomics are closer to `habitipy.habits.list(...)` than `habitipy.list_habits(...)`.
-- If an instantiated client object becomes necessary, keep the same resource shape, for example `client.habits.list(...)`.
+- The intended package ergonomics are closer to `client.habits.list(...)` than `client.list_habits(...)`.
+- Keep the public entry point centered on `HabitipyClient` rather than a package-level singleton runtime.
 - Do not let transport abstractions leak into the public API.
 
 ### Modeling
@@ -90,7 +98,7 @@ Preferred resource grouping:
 - `habits.journal`
 - `habits.statistics`
 
-The user-facing surface can still flatten some of these into `habitipy.habits.*` methods if that is cleaner.
+The user-facing surface can still flatten some of these into `client.habits.*` methods if that is cleaner.
 
 ## Suggested Package Shape
 
@@ -99,7 +107,6 @@ This is guidance, not a locked file tree.
 ```text
 habitipy/
   __init__.py
-  transport.py
   errors.py
   pagination.py
   habits.py

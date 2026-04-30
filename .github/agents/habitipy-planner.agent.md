@@ -1,6 +1,6 @@
 ---
 name: Habitipy Planner
-description: "Use when planning Habitify Python client work, mapping OpenAPI endpoints to modules, scoping implementation slices, or deciding how to expose resource-style APIs like habitipy.habits.list(...)."
+description: "Use when planning Habitify Python client work, mapping OpenAPI endpoints to modules, scoping implementation slices, or deciding how to expose resource-style APIs like HabitipyClient(...).habits.list(...)."
 tools: [read, search, web]
 user-invocable: false
 argument-hint: "Describe the Habitify endpoint, feature, or implementation slice to plan."
