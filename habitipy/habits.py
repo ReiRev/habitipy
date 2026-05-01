@@ -78,8 +78,12 @@ class HabitsResource:
         )
 
     def archive(self, habit_id: str) -> None:
-        response = self._client.post(f"/habits/{quote_path_value(habit_id)}/archive")
-        raise_for_api_status(response)
+        request_no_content(
+            self._client,
+            "POST",
+            f"/habits/{quote_path_value(habit_id)}/archive",
+            success_label="habit archive",
+        )
 
     def delete(self, habit_id: str) -> None:
         request_no_content(
