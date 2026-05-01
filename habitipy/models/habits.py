@@ -4,7 +4,7 @@ from datetime import date, datetime, time
 from enum import Enum
 from typing import Annotated, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from ..pagination import Pagination
 
@@ -300,6 +300,10 @@ class Area(HabitModel):
     description: str | None = None
 
 
+class AreaListResponse(HabitModel):
+    data: list[Area]
+
+
 class TimeOfDay(HabitModel):
     id: str
     name: str
@@ -421,6 +425,10 @@ class HabitStatisticsResponse(HabitModel):
     data: HabitStatistics
 
 
+class SuccessMessageResponse(HabitModel):
+    message: str
+
+
 class HabitLogRequest(HabitModel):
     unit_symbol: UnitSymbol = Field(alias="unitSymbol")
     value: float
@@ -433,8 +441,64 @@ class HabitLogRequest(HabitModel):
         )
 
 
-class HabitLogResponse(HabitModel):
-    message: str
+class HabitLogResponse(SuccessMessageResponse):
+    pass
+
+
+class HabitLogActionRequest(HabitModel):
+    target_date: date | None = Field(default=None, alias="targetDate")
+
+    def to_request_body(self) -> dict[str, object]:
+        return cast(
+            dict[str, object],
+            self.model_dump(by_alias=True, exclude_none=True, mode="json"),
+        )
+
+
+class MoodLevel(str, Enum):
+    VERY_LOW = "veryLow"
+    LOW = "low"
+    NEUTRAL = "neutral"
+    HIGH = "high"
+    VERY_HIGH = "veryHigh"
+
+
+class HabitNote(HabitModel):
+    id: str
+    content: str | None = None
+    mood_level: MoodLevel | None = Field(default=None, alias="moodLevel")
+    photos: list[str] | None = None
+    created_at: datetime = Field(alias="createdAt")
+
+
+class HabitNoteListResponse(HabitModel):
+    data: list[HabitNote]
+
+
+class HabitNoteWriteRequest(HabitModel):
+    content: str | None = None
+    mood_level: MoodLevel | None = Field(default=None, alias="moodLevel")
+    photos: list[str] | None = None
+
+    @model_validator(mode="after")
+    def require_at_least_one_field(self) -> HabitNoteWriteRequest:
+        if self.content is None and self.mood_level is None and self.photos is None:
+            raise ValueError("At least one note field must be provided.")
+        return self
+
+    def to_request_body(self) -> dict[str, object]:
+        return cast(
+            dict[str, object],
+            self.model_dump(by_alias=True, exclude_none=True, mode="json"),
+        )
+
+
+class HabitNoteCreateRequest(HabitNoteWriteRequest):
+    pass
+
+
+class HabitNoteUpdateRequest(HabitNoteWriteRequest):
+    pass
 
 
 class HabitCreateRequest(HabitModel):

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import httpx
 
+from .areas import AreasResource
 from .habits import HabitsResource
 
 DEFAULT_BASE_URL = "https://api.habitify.me/v2"
@@ -46,6 +47,7 @@ class HabitipyClient:
                 )
 
         self.habits = HabitsResource(self._client)
+        self.areas = AreasResource(self._client)
 
     def close(self) -> None:
         if self._owns_client:
