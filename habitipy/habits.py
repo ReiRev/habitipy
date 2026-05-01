@@ -21,6 +21,7 @@ from .models.habits import (
     HabitNoteCreateRequest,
     HabitNoteListResponse,
     HabitNoteUpdateRequest,
+    HabitResponse,
     HabitStatisticsParams,
     HabitStatisticsResponse,
     HabitType,
@@ -37,6 +38,8 @@ class HabitsResource:
         response = self._client.get(f"/habits/{_quote_path_value(habit_id)}")
         raise_for_api_status(response)
         payload = decode_json_object(response)
+        if isinstance(payload.get("data"), dict):
+            return HabitResponse.model_validate(payload).data
         return Habit.model_validate(payload)
 
     def list(
