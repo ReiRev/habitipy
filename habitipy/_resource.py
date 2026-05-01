@@ -7,7 +7,7 @@ import httpx
 from pydantic import BaseModel
 
 from ._json import decode_json_object
-from .errors import raise_for_api_status
+from .errors import ApiError, raise_for_api_status
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
@@ -50,7 +50,7 @@ def request_no_content(
     response = client.request(method, path, **kwargs)
     raise_for_api_status(response)
     if response.status_code != expected_status:
-        raise httpx.HTTPStatusError(
+        raise ApiError(
             (
                 f"Expected HTTP {expected_status} No Content for {success_label}, "
                 f"got {response.status_code}."

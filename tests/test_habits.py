@@ -543,7 +543,7 @@ def test_client_habits_delete_rejects_unexpected_success_status() -> None:
 
     client = HabitipyClient(api_key="test-key")
     try:
-        with pytest.raises(httpx.HTTPStatusError, match="Expected HTTP 204 No Content"):
+        with pytest.raises(ApiError, match="Expected HTTP 204 No Content"):
             client.habits.delete("habit_123")
     finally:
         client.close()
@@ -1047,7 +1047,7 @@ def test_client_habits_delete_note_rejects_unexpected_success_status() -> None:
 
     client = HabitipyClient(api_key="test-key")
     try:
-        with pytest.raises(httpx.HTTPStatusError, match="Expected HTTP 204 No Content"):
+        with pytest.raises(ApiError, match="Expected HTTP 204 No Content"):
             client.habits.delete_note("habit_123", "note_123")
     finally:
         client.close()
