@@ -300,8 +300,36 @@ class Area(HabitModel):
     description: str | None = None
 
 
+class AreaResponse(HabitModel):
+    data: Area
+
+
 class AreaListResponse(HabitModel):
     data: list[Area]
+
+
+class AreaCreateRequest(HabitModel):
+    name: str
+    color_hex: str | None = Field(default=None, alias="colorHex")
+    icon: str | None = None
+
+    def to_request_body(self) -> dict[str, object]:
+        return cast(
+            dict[str, object],
+            self.model_dump(by_alias=True, exclude_none=True, mode="json"),
+        )
+
+
+class AreaUpdateRequest(HabitModel):
+    name: str | None = None
+    color_hex: str | None = Field(default=None, alias="colorHex")
+    icon: str | None = None
+
+    def to_request_body(self) -> dict[str, object]:
+        return cast(
+            dict[str, object],
+            self.model_dump(by_alias=True, exclude_none=True, mode="json"),
+        )
 
 
 class TimeOfDay(HabitModel):
