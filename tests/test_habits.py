@@ -1076,6 +1076,27 @@ def test_habit_note_requests_require_at_least_one_field() -> None:
 
 
 @respx.mock
+def test_client_habits_update_note_sends_explicit_null_to_clear_field() -> None:
+    route = respx.put("https://api.habitify.me/v2/habits/habit_123/notes/note_123").mock(
+        return_value=httpx.Response(200, json=build_habit_note_payload())
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        note = client.habits.update_note(
+            "habit_123",
+            "note_123",
+            HabitNoteUpdateRequest(content=None),
+        )
+    finally:
+        client.close()
+
+    assert route.called
+    assert json.loads(route.calls[0].request.content.decode("utf-8")) == {"content": None}
+    assert note.id == "note_123"
+
+
+@respx.mock
 def test_client_habits_list_uses_injected_httpx_client() -> None:
     route = respx.get("https://api.habitify.me/v2/habits").mock(
         return_value=httpx.Response(200, json=build_habits_payload())
@@ -1119,6 +1140,20 @@ def test_client_requires_api_key_when_injected_client_has_no_header() -> None:
     with httpx.Client() as injected_client:
         with pytest.raises(ValueError, match="provided client already has an X-API-Key header"):
             HabitipyClient(client=injected_client)
+
+
+@respx.mock
+def test_client_empty_api_key_does_not_overwrite_injected_client_header() -> None:
+    route = respx.get("https://api.habitify.me/v2/habits").mock(
+        return_value=httpx.Response(200, json=build_habits_payload())
+    )
+
+    with httpx.Client(headers={"X-API-Key": "preset-key"}) as injected_client:
+        client = HabitipyClient(api_key="", client=injected_client)
+        page = client.habits.list(limit=25)
+
+    assert route.calls[0].request.headers["X-API-Key"] == "preset-key"
+    assert page.data[0].name == "Morning Run"
 
 
 @respx.mock

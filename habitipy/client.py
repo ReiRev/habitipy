@@ -74,7 +74,7 @@ class HabitipyClient:
             if not str(self._client.base_url):
                 self._client.base_url = httpx.URL(base_url.rstrip("/"))
 
-            if api_key is not None:
+            if api_key is not None and api_key != "":
                 self._client.headers[API_KEY_HEADER] = api_key
 
             if API_KEY_HEADER not in self._client.headers:

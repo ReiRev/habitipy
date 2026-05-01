@@ -470,7 +470,7 @@ class HabitNoteWriteRequest(HabitipyBaseModel):
 
     @model_validator(mode="after")
     def require_at_least_one_field(self) -> HabitNoteWriteRequest:
-        if self.content is None and self.mood_level is None and self.photos is None:
+        if not self.model_fields_set:
             raise ValueError("At least one note field must be provided.")
         return self
 
@@ -480,7 +480,11 @@ class HabitNoteCreateRequest(HabitNoteWriteRequest):
 
 
 class HabitNoteUpdateRequest(HabitNoteWriteRequest):
-    pass
+    def to_request_body(self) -> dict[str, object]:
+        return cast(
+            dict[str, object],
+            self.model_dump(by_alias=True, exclude_unset=True, mode="json"),
+        )
 
 
 class HabitCreateRequest(HabitipyBaseModel):
