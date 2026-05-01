@@ -12,6 +12,21 @@ from ..pagination import Pagination
 class HabitModel(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
+    def to_request_body(self) -> dict[str, object]:
+        return cast(
+            dict[str, object],
+            self.model_dump(by_alias=True, exclude_none=True, mode="json"),
+        )
+
+    def to_query_params(self) -> dict[str, str]:
+        serialized: dict[str, str] = {}
+        for key, value in self.model_dump(by_alias=True, exclude_none=True, mode="json").items():
+            if isinstance(value, bool):
+                serialized[key] = str(value).lower()
+            else:
+                serialized[key] = str(value)
+        return serialized
+
 
 def _prune_empty_dicts(value: object) -> object | None:
     if isinstance(value, dict):
@@ -313,23 +328,11 @@ class AreaCreateRequest(HabitModel):
     color_hex: str | None = Field(default=None, alias="colorHex")
     icon: str | None = None
 
-    def to_request_body(self) -> dict[str, object]:
-        return cast(
-            dict[str, object],
-            self.model_dump(by_alias=True, exclude_none=True, mode="json"),
-        )
-
 
 class AreaUpdateRequest(HabitModel):
     name: str | None = None
     color_hex: str | None = Field(default=None, alias="colorHex")
     icon: str | None = None
-
-    def to_request_body(self) -> dict[str, object]:
-        return cast(
-            dict[str, object],
-            self.model_dump(by_alias=True, exclude_none=True, mode="json"),
-        )
 
 
 class TimeOfDay(HabitModel):
@@ -466,12 +469,6 @@ class HabitLogRequest(HabitModel):
     value: float
     target_date: date | None = Field(default=None, alias="targetDate")
 
-    def to_request_body(self) -> dict[str, object]:
-        return cast(
-            dict[str, object],
-            self.model_dump(by_alias=True, exclude_none=True, mode="json"),
-        )
-
 
 class HabitLogResponse(SuccessMessageResponse):
     pass
@@ -479,12 +476,6 @@ class HabitLogResponse(SuccessMessageResponse):
 
 class HabitLogActionRequest(HabitModel):
     target_date: date | None = Field(default=None, alias="targetDate")
-
-    def to_request_body(self) -> dict[str, object]:
-        return cast(
-            dict[str, object],
-            self.model_dump(by_alias=True, exclude_none=True, mode="json"),
-        )
 
 
 class MoodLevel(str, Enum):
@@ -518,12 +509,6 @@ class HabitNoteWriteRequest(HabitModel):
             raise ValueError("At least one note field must be provided.")
         return self
 
-    def to_request_body(self) -> dict[str, object]:
-        return cast(
-            dict[str, object],
-            self.model_dump(by_alias=True, exclude_none=True, mode="json"),
-        )
-
 
 class HabitNoteCreateRequest(HabitNoteWriteRequest):
     pass
@@ -547,12 +532,6 @@ class HabitCreateRequest(HabitModel):
     goal: HabitCreateGoal | None = None
     reminders: HabitCreateReminders | None = None
     end_condition: HabitCreateEndCondition | None = Field(default=None, alias="endCondition")
-
-    def to_request_body(self) -> dict[str, object]:
-        return cast(
-            dict[str, object],
-            self.model_dump(by_alias=True, exclude_none=True, mode="json"),
-        )
 
 
 class HabitUpdateRequest(HabitModel):
@@ -582,42 +561,11 @@ class HabitListParams(HabitModel):
     limit: int | None = Field(default=None, ge=1, le=100)
     offset: int | None = Field(default=None, ge=0)
 
-    def to_query_params(self) -> dict[str, str]:
-        serialized: dict[str, str] = {}
-        for key, value in self.model_dump(by_alias=True, exclude_none=True).items():
-            if isinstance(value, bool):
-                serialized[key] = str(value).lower()
-            elif isinstance(value, Enum):
-                serialized[key] = value.value
-            else:
-                serialized[key] = str(value)
-        return serialized
-
 
 class HabitJournalParams(HabitModel):
     journal_date: date | None = Field(default=None, alias="date")
-
-    def to_query_params(self) -> dict[str, str]:
-        return {
-            key: str(value)
-            for key, value in self.model_dump(
-                by_alias=True,
-                exclude_none=True,
-                mode="json",
-            ).items()
-        }
 
 
 class HabitStatisticsParams(HabitModel):
     start_date: date | None = Field(default=None, alias="startDate")
     end_date: date | None = Field(default=None, alias="endDate")
-
-    def to_query_params(self) -> dict[str, str]:
-        return {
-            key: str(value)
-            for key, value in self.model_dump(
-                by_alias=True,
-                exclude_none=True,
-                mode="json",
-            ).items()
-        }

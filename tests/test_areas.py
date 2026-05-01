@@ -6,7 +6,7 @@ import httpx
 import pytest
 import respx
 
-from habitipy import AreaCreateRequest, AreaListResponse, AreaUpdateRequest, HabitipyClient
+from habitipy import AreaCreateRequest, AreaUpdateRequest, HabitipyClient
 from habitipy.errors import (
     AuthenticationError,
     NotFoundError,
@@ -47,8 +47,8 @@ def test_client_areas_list_parses_response() -> None:
         client.close()
 
     assert route.called
-    assert isinstance(areas, AreaListResponse)
-    assert areas.data[0].name == "Health"
+    assert isinstance(areas, list)
+    assert areas[0].name == "Health"
 
 
 @respx.mock
