@@ -13,6 +13,27 @@ API_KEY_HEADER = "X-API-Key"
 
 
 class HabitipyClient:
+    """Synchronous client for the Habitify API v2.
+
+    The client can be used as a context manager so the underlying HTTP session
+    is closed automatically::
+
+        with HabitipyClient(api_key="...") as client:
+            page = client.habits.list()
+
+    You may also bring your own :class:`httpx.Client` and manage its lifecycle
+    yourself::
+
+        http = httpx.Client()
+        client = HabitipyClient(api_key="...", client=http)
+        # ... use client ...
+        http.close()
+
+    Attributes:
+        habits: Namespace for habit-related endpoints.
+        areas: Namespace for area-related endpoints.
+    """
+
     def __init__(
         self,
         api_key: str | None = None,
@@ -20,6 +41,20 @@ class HabitipyClient:
         client: httpx.Client | None = None,
         base_url: str = DEFAULT_BASE_URL,
     ) -> None:
+        """Create a new Habitipy client.
+
+        Args:
+            api_key: Habitify API key. Required when *client* is not provided
+                and must be a non-empty string.
+            client: An existing :class:`httpx.Client` to use for requests. When
+                provided, the caller is responsible for closing it.
+            base_url: Base URL for the Habitify API. Defaults to the production
+                v2 endpoint.
+
+        Raises:
+            ValueError: If *api_key* is missing, empty, or the injected *client*
+                lacks the ``X-API-Key`` header.
+        """
         if client is None:
             if api_key is None or api_key == "":
                 raise ValueError("api_key is required when client is not provided.")

@@ -14,6 +14,13 @@ class UnexpectedResponseShapeError(ResponseDecodeError):
 
 
 class ApiError(httpx.HTTPStatusError):
+    """Base exception for Habitify API error responses.
+
+    Attributes:
+        payload: The decoded response body, if available. May be a dict, str,
+            or ``None`` when the body could not be parsed.
+    """
+
     def __init__(
         self,
         message: str,
@@ -27,22 +34,41 @@ class ApiError(httpx.HTTPStatusError):
 
 
 class AuthenticationError(ApiError):
-    """Raised when authentication is missing or invalid."""
+    """Raised when authentication is missing or invalid (HTTP 401)."""
 
 
 class NotFoundError(ApiError):
-    """Raised when the requested resource is missing."""
+    """Raised when the requested resource is missing (HTTP 404)."""
 
 
 class RateLimitError(ApiError):
-    """Raised when the Habitify API rate limit is exceeded."""
+    """Raised when the Habitify API rate limit is exceeded (HTTP 429)."""
 
 
 class ServerError(ApiError):
-    """Raised when the Habitify API returns a server-side error."""
+    """Raised when the Habitify API returns a server-side error (HTTP 5xx)."""
 
 
 def raise_for_api_status(response: httpx.Response) -> None:
+    """Raise a Habitify-specific exception for non-2xx responses.
+
+    Maps common HTTP status codes to typed subclasses:
+
+    * 401 → :class:`AuthenticationError`
+    * 404 → :class:`NotFoundError`
+    * 429 → :class:`RateLimitError`
+    * 5xx → :class:`ServerError`
+    * others → :class:`ApiError`
+
+    The response body is parsed as JSON when possible and attached to the
+    exception via ``.payload``.
+
+    Args:
+        response: The HTTP response to inspect.
+
+    Raises:
+        ApiError: If the response status is not successful.
+    """
     payload: Any | None = None
     message = response.reason_phrase
     cause: httpx.HTTPStatusError | None = None
