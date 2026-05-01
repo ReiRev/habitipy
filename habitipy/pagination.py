@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Pagination(BaseModel):
@@ -15,5 +15,5 @@ class Pagination(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     total: int
-    limit: int
-    offset: int
+    limit: int = Field(..., ge=1)
+    offset: int = Field(..., ge=0)

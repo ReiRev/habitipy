@@ -40,6 +40,7 @@ class HabitipyClient:
         *,
         client: httpx.Client | None = None,
         base_url: str = DEFAULT_BASE_URL,
+        timeout: float = DEFAULT_TIMEOUT,
     ) -> None:
         """Create a new Habitipy client.
 
@@ -50,6 +51,8 @@ class HabitipyClient:
                 provided, the caller is responsible for closing it.
             base_url: Base URL for the Habitify API. Defaults to the production
                 v2 endpoint.
+            timeout: Default timeout in seconds for HTTP requests. Ignored when
+                *client* is injected.
 
         Raises:
             ValueError: If *api_key* is missing, empty, or the injected *client*
@@ -66,7 +69,7 @@ class HabitipyClient:
 
         self._client = client or httpx.Client(
             base_url=base_url.rstrip("/"),
-            timeout=DEFAULT_TIMEOUT,
+            timeout=timeout,
             headers=default_headers,
         )
 
@@ -101,5 +104,6 @@ class HabitipyClient:
         return (
             f"{self.__class__.__name__}("
             f"base_url={self._client.base_url!r}, "
-            f"timeout={self._client.timeout!r})"
+            f"timeout={self._client.timeout!r}, "
+            f"_owns_client={self._owns_client!r})"
         )
