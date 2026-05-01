@@ -932,6 +932,20 @@ def test_client_habits_delete_note_returns_none_on_204() -> None:
     assert result is None
 
 
+@respx.mock
+def test_client_habits_delete_note_rejects_unexpected_success_status() -> None:
+    respx.delete("https://api.habitify.me/v2/habits/habit_123/notes/note_123").mock(
+        return_value=httpx.Response(200)
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(httpx.HTTPStatusError, match="Expected HTTP 204 No Content"):
+            client.habits.delete_note("habit_123", "note_123")
+    finally:
+        client.close()
+
+
 def test_habit_note_requests_require_at_least_one_field() -> None:
     with pytest.raises(ValidationError, match="At least one note field must be provided"):
         HabitNoteCreateRequest()

@@ -5,7 +5,7 @@ import pytest
 import respx
 
 from habitipy import AreaListResponse, HabitipyClient
-from habitipy.errors import AuthenticationError, ResponseDecodeError
+from habitipy.errors import AuthenticationError, ResponseDecodeError, UnexpectedResponseShapeError
 
 
 def build_areas_payload() -> dict[str, object]:
@@ -67,6 +67,18 @@ def test_client_areas_list_raises_response_decode_error_for_invalid_json() -> No
     client = HabitipyClient(api_key="test-key")
     try:
         with pytest.raises(ResponseDecodeError, match="invalid JSON"):
+            client.areas.list()
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_client_areas_list_raises_unexpected_response_shape_error_for_non_object_json() -> None:
+    respx.get("https://api.habitify.me/v2/areas").mock(return_value=httpx.Response(200, json=[]))
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        with pytest.raises(UnexpectedResponseShapeError, match="must be a JSON object"):
             client.areas.list()
     finally:
         client.close()

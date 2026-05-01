@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Any
 from urllib.parse import quote
 
 import httpx
 
-from .errors import ResponseDecodeError, UnexpectedResponseShapeError, raise_for_api_status
+from ._json import decode_json_object
+from .errors import raise_for_api_status
 from .models.habits import (
     Habit,
     HabitCreateRequest,
@@ -36,7 +36,7 @@ class HabitsResource:
     def get(self, habit_id: str) -> Habit:
         response = self._client.get(f"/habits/{_quote_path_value(habit_id)}")
         raise_for_api_status(response)
-        payload = _decode_json_object(response)
+        payload = decode_json_object(response)
         return Habit.model_validate(payload)
 
     def list(
@@ -59,13 +59,13 @@ class HabitsResource:
         )
         response = self._client.get("/habits", params=params.to_query_params())
         raise_for_api_status(response)
-        payload = _decode_json_object(response)
+        payload = decode_json_object(response)
         return HabitListPage.model_validate(payload)
 
     def create(self, request: HabitCreateRequest) -> Habit:
         response = self._client.post("/habits", json=request.to_request_body())
         raise_for_api_status(response)
-        payload = _decode_json_object(response)
+        payload = decode_json_object(response)
         return Habit.model_validate(payload)
 
     def archive(self, habit_id: str) -> None:
@@ -88,7 +88,7 @@ class HabitsResource:
             json=request.to_request_body(),
         )
         raise_for_api_status(response)
-        payload = _decode_json_object(response)
+        payload = decode_json_object(response)
         return HabitLogResponse.model_validate(payload)
 
     def delete_log(self, habit_id: str, log_id: str) -> SuccessMessageResponse:
@@ -96,7 +96,7 @@ class HabitsResource:
             f"/habits/{_quote_path_value(habit_id)}/logs/{_quote_path_value(log_id)}"
         )
         raise_for_api_status(response)
-        payload = _decode_json_object(response)
+        payload = decode_json_object(response)
         return SuccessMessageResponse.model_validate(payload)
 
     def complete_log(
@@ -130,7 +130,7 @@ class HabitsResource:
     def list_notes(self, habit_id: str) -> HabitNoteListResponse:
         response = self._client.get(f"/habits/{_quote_path_value(habit_id)}/notes")
         raise_for_api_status(response)
-        payload = _decode_json_object(response)
+        payload = decode_json_object(response)
         return HabitNoteListResponse.model_validate(payload)
 
     def create_note(self, habit_id: str, request: HabitNoteCreateRequest) -> HabitNote:
@@ -139,7 +139,7 @@ class HabitsResource:
             json=request.to_request_body(),
         )
         raise_for_api_status(response)
-        payload = _decode_json_object(response)
+        payload = decode_json_object(response)
         return HabitNote.model_validate(payload)
 
     def update_note(
@@ -153,7 +153,7 @@ class HabitsResource:
             json=request.to_request_body(),
         )
         raise_for_api_status(response)
-        payload = _decode_json_object(response)
+        payload = decode_json_object(response)
         return HabitNote.model_validate(payload)
 
     def delete_note(self, habit_id: str, note_id: str) -> None:
@@ -179,7 +179,7 @@ class HabitsResource:
         params = HabitJournalParams(journal_date=date)
         response = self._client.get("/habits/journal", params=params.to_query_params())
         raise_for_api_status(response)
-        payload = _decode_json_object(response)
+        payload = decode_json_object(response)
         return HabitJournalPage.model_validate(payload)
 
     def statistics(
@@ -195,7 +195,7 @@ class HabitsResource:
             params=params.to_query_params(),
         )
         raise_for_api_status(response)
-        payload = _decode_json_object(response)
+        payload = decode_json_object(response)
         return HabitStatisticsResponse.model_validate(payload)
 
     def _post_log_action(
@@ -213,25 +213,9 @@ class HabitsResource:
         else:
             response = self._client.post(f"/habits/{_quote_path_value(habit_id)}/logs/{action}")
         raise_for_api_status(response)
-        payload = _decode_json_object(response)
+        payload = decode_json_object(response)
         return SuccessMessageResponse.model_validate(payload)
 
 
 def _quote_path_value(value: str) -> str:
     return quote(value, safe="")
-
-
-def _decode_json_object(response: httpx.Response) -> dict[str, Any]:
-    try:
-        payload = response.json()
-    except ValueError as exc:
-        raise ResponseDecodeError(
-            "Habitify API returned invalid JSON.", request=response.request
-        ) from exc
-
-    if not isinstance(payload, dict):
-        raise UnexpectedResponseShapeError(
-            "Habitify API response payload must be a JSON object.",
-            request=response.request,
-        )
-    return payload
