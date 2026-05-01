@@ -5,8 +5,7 @@ from datetime import date
 
 import httpx
 
-from ._resource import quote_path_value, request_json_object, request_model, request_no_content
-from .errors import raise_for_api_status
+from ._resource import quote_path_value, request_model, request_no_content
 from .models.habits import (
     Habit,
     HabitCreateRequest,
@@ -50,10 +49,12 @@ class HabitsResource:
         Raises:
             NotFoundError: If the habit does not exist.
         """
-        payload = request_json_object(self._client, "GET", f"/habits/{quote_path_value(habit_id)}")
-        if isinstance(payload.get("data"), dict):
-            return HabitResponse.model_validate(payload).data
-        return Habit.model_validate(payload)
+        return request_model(
+            self._client,
+            "GET",
+            f"/habits/{quote_path_value(habit_id)}",
+            HabitResponse,
+        ).data
 
     def list(
         self,
@@ -334,32 +335,38 @@ class HabitsResource:
             success_label="habit note deletion",
         )
 
-    def update(self, habit_id: str, request: HabitUpdateRequest) -> None:
+    def update(self, habit_id: str, request: HabitUpdateRequest) -> Habit:
         """Update an existing habit.
 
         Args:
             habit_id: Unique identifier of the habit to update.
             request: Habit update payload.
 
+        Returns:
+            The updated :class:`Habit`.
+
         Raises:
             NotFoundError: If the habit does not exist.
             ApiError: If the request payload is invalid.
         """
-        response = self._client.put(
-            f"/habits/{quote_path_value(habit_id)}", json=request.to_request_body()
-        )
-        raise_for_api_status(response)
+        return request_model(
+            self._client,
+            "PUT",
+            f"/habits/{quote_path_value(habit_id)}",
+            HabitResponse,
+            json=request.to_request_body(),
+        ).data
 
-    def journal(self, *, date: date | None = None) -> builtins.list[HabitJournalEntry]:
+    def journal(self, *, journal_date: date | None = None) -> builtins.list[HabitJournalEntry]:
         """Fetch the habit journal for a specific date.
 
         Args:
-            date: Date to fetch the journal for. Defaults to today.
+            journal_date: Date to fetch the journal for. Defaults to today.
 
         Returns:
             List of :class:`HabitJournalEntry` objects.
         """
-        params = HabitJournalParams(journal_date=date)
+        params = HabitJournalParams(journal_date=journal_date)
         return request_model(
             self._client,
             "GET",
@@ -406,17 +413,10 @@ class HabitsResource:
     ) -> SuccessMessageResponse:
         """Internal helper to POST a log action endpoint."""
         request_body = request.to_request_body() if request is not None else None
-        if request_body:
-            return request_model(
-                self._client,
-                "POST",
-                f"/habits/{quote_path_value(habit_id)}/logs/{action}",
-                SuccessMessageResponse,
-                json=request_body,
-            )
         return request_model(
             self._client,
             "POST",
             f"/habits/{quote_path_value(habit_id)}/logs/{action}",
             SuccessMessageResponse,
+            json=request_body,
         )

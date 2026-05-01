@@ -28,6 +28,17 @@ class HabitipyBaseModel(BaseModel):
         return serialized
 
 
+class HabitipyRequestModel(HabitipyBaseModel):
+    """Base for request payloads sent to the Habitify API.
+
+    Uses ``extra="forbid"`` so typos in field names or unexpected keys raise
+    a validation error at model construction time rather than being silently
+    dropped by the server.
+    """
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+
 def _prune_empty_dicts(value: object) -> object | None:
     if isinstance(value, dict):
         pruned = {
@@ -135,12 +146,12 @@ HabitCreateTimeTrigger = TimeTrigger
 HabitCreateHabitStack = HabitStack
 
 
-class HabitCreateReminders(HabitipyBaseModel):
+class HabitCreateReminders(HabitipyRequestModel):
     time_triggers: list[TimeTrigger] = Field(default_factory=list, alias="timeTriggers")
     habit_stacks: list[HabitStack] = Field(default_factory=list, alias="habitStacks")
 
 
-class HabitUpdateReminders(HabitipyBaseModel):
+class HabitUpdateReminders(HabitipyRequestModel):
     time_triggers: list[TimeTrigger] | None = Field(default=None, alias="timeTriggers")
     habit_stacks: list[HabitStack] | None = Field(default=None, alias="habitStacks")
 
@@ -256,7 +267,7 @@ HabitCreateEndCondition = Annotated[
 ]
 
 
-class HabitCreateGoal(HabitipyBaseModel):
+class HabitCreateGoal(HabitipyRequestModel):
     periodicity: GoalPeriodicity
     value: float
     unit: UnitSymbol
@@ -288,13 +299,13 @@ class AreaListResponse(HabitipyBaseModel):
     data: list[Area]
 
 
-class AreaCreateRequest(HabitipyBaseModel):
+class AreaCreateRequest(HabitipyRequestModel):
     name: str
     color_hex: str | None = Field(default=None, alias="colorHex")
     icon: str | None = None
 
 
-class AreaUpdateRequest(HabitipyBaseModel):
+class AreaUpdateRequest(HabitipyRequestModel):
     name: str | None = None
     color_hex: str | None = Field(default=None, alias="colorHex")
     icon: str | None = None
@@ -429,7 +440,7 @@ class SuccessMessageResponse(HabitipyBaseModel):
     message: str
 
 
-class HabitLogRequest(HabitipyBaseModel):
+class HabitLogRequest(HabitipyRequestModel):
     unit_symbol: UnitSymbol = Field(alias="unitSymbol")
     value: float
     target_date: date | None = Field(default=None, alias="targetDate")
@@ -439,7 +450,7 @@ class HabitLogResponse(SuccessMessageResponse):
     pass
 
 
-class HabitLogActionRequest(HabitipyBaseModel):
+class HabitLogActionRequest(HabitipyRequestModel):
     target_date: date | None = Field(default=None, alias="targetDate")
 
 
@@ -463,7 +474,7 @@ class HabitNoteListResponse(HabitipyBaseModel):
     data: list[HabitNote]
 
 
-class HabitNoteWriteRequest(HabitipyBaseModel):
+class HabitNoteWriteRequest(HabitipyRequestModel):
     content: str | None = None
     mood_level: MoodLevel | None = Field(default=None, alias="moodLevel")
     photos: list[str] | None = None
@@ -487,7 +498,7 @@ class HabitNoteUpdateRequest(HabitNoteWriteRequest):
         )
 
 
-class HabitCreateRequest(HabitipyBaseModel):
+class HabitCreateRequest(HabitipyRequestModel):
     name: str
     type: HabitType
     description: str | None = None
@@ -503,7 +514,7 @@ class HabitCreateRequest(HabitipyBaseModel):
     end_condition: HabitCreateEndCondition | None = Field(default=None, alias="endCondition")
 
 
-class HabitUpdateRequest(HabitipyBaseModel):
+class HabitUpdateRequest(HabitipyRequestModel):
     name: str | None = None
     description: str | None = None
     occurrence: HabitCreateOccurrence | None = None

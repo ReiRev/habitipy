@@ -10,6 +10,7 @@ from pydantic import ValidationError
 
 from habitipy import (
     GoalPeriodicity,
+    Habit,
     HabitCreateRequest,
     HabitipyClient,
     HabitJournalStatus,
@@ -208,7 +209,7 @@ def build_habit_notes_payload() -> dict[str, object]:
 @respx.mock
 def test_client_habits_get_sends_expected_path_and_parses_response() -> None:
     route = respx.get("https://api.habitify.me/v2/habits/habit_123").mock(
-        return_value=httpx.Response(200, json=build_habit_payload())
+        return_value=httpx.Response(200, json=build_habit_response_payload())
     )
 
     client = HabitipyClient(api_key="test-key")
@@ -226,28 +227,9 @@ def test_client_habits_get_sends_expected_path_and_parses_response() -> None:
 
 
 @respx.mock
-def test_client_habits_get_parses_enveloped_response() -> None:
-    route = respx.get("https://api.habitify.me/v2/habits/habit_123").mock(
-        return_value=httpx.Response(200, json=build_habit_response_payload())
-    )
-
-    client = HabitipyClient(api_key="test-key")
-    try:
-        habit = client.habits.get("habit_123")
-    finally:
-        client.close()
-
-    assert route.called
-    assert route.calls[0].request.url.path == "/v2/habits/habit_123"
-    assert route.calls[0].request.headers["X-API-Key"] == "test-key"
-    assert habit.id == "habit_123"
-    assert habit.type is HabitType.GOOD
-
-
-@respx.mock
 def test_client_habits_get_url_encodes_path_segment() -> None:
     route = respx.get("https://api.habitify.me/v2/habits/habit%2Fwith%20spaces%3F%23").mock(
-        return_value=httpx.Response(200, json=build_habit_payload())
+        return_value=httpx.Response(200, json=build_habit_response_payload())
     )
 
     client = HabitipyClient(api_key="test-key")
@@ -397,9 +379,9 @@ def test_client_habits_create_sends_expected_json_and_parses_response() -> None:
 
 
 @respx.mock
-def test_client_habits_update_sends_expected_json_and_returns_none() -> None:
+def test_client_habits_update_sends_expected_json_and_parses_response() -> None:
     route = respx.put("https://api.habitify.me/v2/habits/habit_123").mock(
-        return_value=httpx.Response(200)
+        return_value=httpx.Response(200, json=build_habit_response_payload())
     )
 
     request = HabitUpdateRequest(
@@ -436,7 +418,8 @@ def test_client_habits_update_sends_expected_json_and_returns_none() -> None:
     finally:
         client.close()
 
-    assert result is None
+    assert isinstance(result, Habit)
+    assert result.id == "habit_123"
 
     http_request = route.calls[0].request
     assert http_request.headers["X-API-Key"] == "test-key"
@@ -470,7 +453,7 @@ def test_client_habits_update_sends_expected_json_and_returns_none() -> None:
 @respx.mock
 def test_client_habits_update_serializes_only_provided_fields() -> None:
     route = respx.put("https://api.habitify.me/v2/habits/habit_123").mock(
-        return_value=httpx.Response(200)
+        return_value=httpx.Response(200, json=build_habit_response_payload())
     )
 
     client = HabitipyClient(api_key="test-key")
@@ -482,7 +465,7 @@ def test_client_habits_update_serializes_only_provided_fields() -> None:
     finally:
         client.close()
 
-    assert result is None
+    assert isinstance(result, Habit)
     assert route.called
     assert json.loads(route.calls[0].request.content.decode("utf-8")) == {"name": "Updated"}
 
@@ -606,7 +589,7 @@ def test_client_habits_journal_sends_expected_query_params_and_parses_response()
 
     client = HabitipyClient(api_key="test-key")
     try:
-        page = client.habits.journal(date=date(2024, 1, 2))
+        page = client.habits.journal(journal_date=date(2024, 1, 2))
     finally:
         client.close()
 
@@ -1215,7 +1198,7 @@ def test_client_habits_journal_maps_bad_request_error() -> None:
     client = HabitipyClient(api_key="test-key")
     try:
         with pytest.raises(ApiError, match="Invalid date format"):
-            client.habits.journal(date=date(2024, 1, 2))
+            client.habits.journal(journal_date=date(2024, 1, 2))
     finally:
         client.close()
 
