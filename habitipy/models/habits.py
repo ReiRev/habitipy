@@ -412,9 +412,9 @@ class HabitJournalPage(HabitModel):
 
 
 class HabitStatisticsUnit(HabitModel):
-    id: str
-    name: str
-    symbol: UnitSymbol | str
+    id: str | None = None
+    name: str | None = None
+    symbol: UnitSymbol | str | None = None
 
     @field_validator("symbol", mode="before")
     @classmethod
@@ -451,6 +451,10 @@ class HabitStatistics(HabitModel):
 
 class HabitStatisticsResponse(HabitModel):
     data: HabitStatistics
+
+
+class HabitResponse(HabitModel):
+    data: Habit
 
 
 class SuccessMessageResponse(HabitModel):

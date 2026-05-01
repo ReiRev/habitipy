@@ -126,6 +126,10 @@ def build_habit_payload() -> dict[str, object]:
     return dict(build_habits_payload()["data"][0])
 
 
+def build_habit_response_payload() -> dict[str, object]:
+    return {"data": build_habit_payload()}
+
+
 def build_habit_journal_payload() -> dict[str, object]:
     return {
         "data": [
@@ -175,6 +179,12 @@ def build_habit_statistics_payload() -> dict[str, object]:
     }
 
 
+def build_habit_statistics_live_unit_payload() -> dict[str, object]:
+    payload = build_habit_statistics_payload()
+    payload["data"]["unit"] = {"symbol": UnitSymbol.REP.value, "type": "scalar"}
+    return payload
+
+
 def build_habit_log_response_payload() -> dict[str, object]:
     return {"message": "Habit log created successfully"}
 
@@ -218,6 +228,22 @@ def test_client_habits_get_sends_expected_path_and_parses_response() -> None:
 
 
 @respx.mock
+def test_client_habits_get_parses_enveloped_response() -> None:
+    respx.get("https://api.habitify.me/v2/habits/habit_123").mock(
+        return_value=httpx.Response(200, json=build_habit_response_payload())
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        habit = client.habits.get("habit_123")
+    finally:
+        client.close()
+
+    assert habit.id == "habit_123"
+    assert habit.type is HabitType.GOOD
+
+
+@respx.mock
 def test_client_habits_get_url_encodes_path_segment() -> None:
     route = respx.get("https://api.habitify.me/v2/habits/habit%2Fwith%20spaces%3F%23").mock(
         return_value=httpx.Response(200, json=build_habit_payload())
@@ -232,6 +258,23 @@ def test_client_habits_get_url_encodes_path_segment() -> None:
     assert route.called
     assert route.calls[0].request.url.raw_path == b"/v2/habits/habit%2Fwith%20spaces%3F%23"
     assert habit.id == "habit_123"
+
+
+@respx.mock
+def test_client_habits_statistics_parses_live_unit_shape_without_id_or_name() -> None:
+    respx.get("https://api.habitify.me/v2/habits/habit_123/statistics").mock(
+        return_value=httpx.Response(200, json=build_habit_statistics_live_unit_payload())
+    )
+
+    client = HabitipyClient(api_key="test-key")
+    try:
+        statistics = client.habits.statistics("habit_123")
+    finally:
+        client.close()
+
+    assert statistics.data.unit.id is None
+    assert statistics.data.unit.name is None
+    assert statistics.data.unit.symbol is UnitSymbol.REP
 
 
 @respx.mock
