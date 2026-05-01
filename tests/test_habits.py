@@ -229,7 +229,7 @@ def test_client_habits_get_sends_expected_path_and_parses_response() -> None:
 
 @respx.mock
 def test_client_habits_get_parses_enveloped_response() -> None:
-    respx.get("https://api.habitify.me/v2/habits/habit_123").mock(
+    route = respx.get("https://api.habitify.me/v2/habits/habit_123").mock(
         return_value=httpx.Response(200, json=build_habit_response_payload())
     )
 
@@ -239,6 +239,9 @@ def test_client_habits_get_parses_enveloped_response() -> None:
     finally:
         client.close()
 
+    assert route.called
+    assert route.calls[0].request.url.path == "/v2/habits/habit_123"
+    assert route.calls[0].request.headers["X-API-Key"] == "test-key"
     assert habit.id == "habit_123"
     assert habit.type is HabitType.GOOD
 
@@ -262,7 +265,7 @@ def test_client_habits_get_url_encodes_path_segment() -> None:
 
 @respx.mock
 def test_client_habits_statistics_parses_live_unit_shape_without_id_or_name() -> None:
-    respx.get("https://api.habitify.me/v2/habits/habit_123/statistics").mock(
+    route = respx.get("https://api.habitify.me/v2/habits/habit_123/statistics").mock(
         return_value=httpx.Response(200, json=build_habit_statistics_live_unit_payload())
     )
 
@@ -272,6 +275,9 @@ def test_client_habits_statistics_parses_live_unit_shape_without_id_or_name() ->
     finally:
         client.close()
 
+    assert route.called
+    assert route.calls[0].request.url.path == "/v2/habits/habit_123/statistics"
+    assert route.calls[0].request.headers["X-API-Key"] == "test-key"
     assert statistics.data.unit.id is None
     assert statistics.data.unit.name is None
     assert statistics.data.unit.symbol is UnitSymbol.REP

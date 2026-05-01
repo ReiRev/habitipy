@@ -414,7 +414,7 @@ class HabitJournalPage(HabitModel):
 class HabitStatisticsUnit(HabitModel):
     id: str | None = None
     name: str | None = None
-    symbol: UnitSymbol | str | None = None
+    symbol: UnitSymbol | str
 
     @field_validator("symbol", mode="before")
     @classmethod
