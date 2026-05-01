@@ -10,6 +10,12 @@ from ..pagination import Pagination
 
 
 class HabitipyBaseModel(BaseModel):
+    """Base model for all Habitify API data structures.
+
+    Uses ``extra="ignore"`` so unknown fields in server responses are silently
+    discarded rather than causing validation errors.
+    """
+
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     def to_request_body(self) -> dict[str, object]:
@@ -57,16 +63,22 @@ def _prune_empty_dicts(value: object) -> object | None:
 
 
 class HabitType(str, Enum):
+    """Classification of a habit's moral direction."""
+
     GOOD = "good"
     BAD = "bad"
 
 
 class LogMethod(str, Enum):
+    """How a habit log entry was recorded."""
+
     MANUAL = "manual"
     AUTO = "auto"
 
 
 class GoalPeriodicity(str, Enum):
+    """Time window for evaluating a habit's goal."""
+
     DAILY = "daily"
     WEEKLY = "weekly"
     MONTHLY = "monthly"
@@ -103,6 +115,8 @@ class UnitSymbol(str, Enum):
 
 
 class HabitStackTriggerType(str, Enum):
+    """Event that triggers a habit stack action."""
+
     COMPLETED = "completed"
     SKIPPED = "skipped"
     FAILED = "failed"
@@ -110,20 +124,28 @@ class HabitStackTriggerType(str, Enum):
 
 
 class HabitStackTimerType(str, Enum):
+    """Timing mode for a habit stack trigger."""
+
     IMMEDIATELY = "immediately"
     AFTER = "after"
 
 
 class ReminderTime(HabitipyBaseModel):
+    """Clock time for a reminder notification."""
+
     hour: int
     minute: int
 
 
 class ReminderOccurrenceFilter(HabitipyBaseModel):
+    """Optional filter limiting which days a reminder fires."""
+
     week_days: list[int] | None = Field(default=None, alias="weekDays")
 
 
 class TimeTrigger(HabitipyBaseModel):
+    """A single reminder tied to a specific clock time."""
+
     time: ReminderTime
     occurrence_filter: ReminderOccurrenceFilter | None = Field(
         default=None, alias="occurrenceFilter"
@@ -133,6 +155,8 @@ class TimeTrigger(HabitipyBaseModel):
 
 
 class HabitStack(HabitipyBaseModel):
+    """Chain reaction triggered by another habit's state change."""
+
     id: str | None = None
     condition_habit_id: str = Field(alias="conditionHabitId")
     type: HabitStackTriggerType
@@ -162,20 +186,28 @@ class Reminders(HabitipyBaseModel):
 
 
 class DailyOccurrence(HabitipyBaseModel):
+    """Occurs every day."""
+
     type: Literal["daily"]
 
 
 class WeekDaysOccurrence(HabitipyBaseModel):
+    """Occurs on specific days of the week (0=Sunday)."""
+
     type: Literal["weekDays"]
     days: list[int]
 
 
 class MonthDaysOccurrence(HabitipyBaseModel):
+    """Occurs on specific days of the month."""
+
     type: Literal["monthDays"]
     days: list[int]
 
 
 class IntervalDaysOccurrence(HabitipyBaseModel):
+    """Occurs every N days."""
+
     type: Literal["intervalDays"]
     interval: int
 
@@ -199,6 +231,8 @@ HabitCreateOccurrence = Annotated[
 
 
 class DateEndCondition(HabitipyBaseModel):
+    """End condition satisfied on a specific calendar date."""
+
     id: str
     type: Literal["date"]
     created_at: datetime = Field(alias="createdAt")
@@ -207,6 +241,8 @@ class DateEndCondition(HabitipyBaseModel):
 
 
 class StreakEndCondition(HabitipyBaseModel):
+    """End condition satisfied after maintaining a streak for a given length."""
+
     id: str
     type: Literal["streak"]
     created_at: datetime = Field(alias="createdAt")
@@ -216,6 +252,8 @@ class StreakEndCondition(HabitipyBaseModel):
 
 
 class SuccessPeriodsEndCondition(HabitipyBaseModel):
+    """End condition satisfied after completing a number of goal periods."""
+
     id: str
     type: Literal["successPeriods"]
     created_at: datetime = Field(alias="createdAt")
@@ -225,6 +263,8 @@ class SuccessPeriodsEndCondition(HabitipyBaseModel):
 
 
 class TotalLogValueEndCondition(HabitipyBaseModel):
+    """End condition satisfied after accumulating a total log value."""
+
     id: str
     type: Literal["totalLogValue"]
     created_at: datetime = Field(alias="createdAt")
@@ -233,21 +273,29 @@ class TotalLogValueEndCondition(HabitipyBaseModel):
 
 
 class HabitCreateDateEndCondition(HabitipyBaseModel):
+    """Request payload for a date-based end condition."""
+
     type: Literal["date"]
     date: date
 
 
 class HabitCreateStreakEndCondition(HabitipyBaseModel):
+    """Request payload for a streak-based end condition."""
+
     type: Literal["streak"]
     streak_length: int = Field(alias="streakLength")
 
 
 class HabitCreateSuccessPeriodsEndCondition(HabitipyBaseModel):
+    """Request payload for a success-periods end condition."""
+
     type: Literal["successPeriods"]
     total_periods: int = Field(alias="totalPeriods")
 
 
 class HabitCreateTotalLogValueEndCondition(HabitipyBaseModel):
+    """Request payload for a total-log-value end condition."""
+
     type: Literal["totalLogValue"]
     total_log_value: float = Field(alias="totalLogValue")
 
@@ -268,12 +316,16 @@ HabitCreateEndCondition = Annotated[
 
 
 class HabitCreateGoal(HabitipyRequestModel):
+    """Goal definition used when creating a new habit."""
+
     periodicity: GoalPeriodicity
     value: float
     unit: UnitSymbol
 
 
 class Goal(HabitipyBaseModel):
+    """Goal returned by the API, including server-generated metadata."""
+
     id: str
     created_at: datetime = Field(alias="createdAt")
     periodicity: GoalPeriodicity
@@ -283,6 +335,8 @@ class Goal(HabitipyBaseModel):
 
 
 class Area(HabitipyBaseModel):
+    """A named area (category) that habits can belong to."""
+
     id: str
     name: str
     color_hex: str | None = Field(default=None, alias="colorHex")
@@ -292,26 +346,36 @@ class Area(HabitipyBaseModel):
 
 
 class AreaResponse(HabitipyBaseModel):
+    """Single-area response envelope."""
+
     data: Area
 
 
 class AreaListResponse(HabitipyBaseModel):
+    """Multi-area response envelope."""
+
     data: list[Area]
 
 
 class AreaCreateRequest(HabitipyRequestModel):
+    """Payload for creating a new area."""
+
     name: str
     color_hex: str | None = Field(default=None, alias="colorHex")
     icon: str | None = None
 
 
 class AreaUpdateRequest(HabitipyRequestModel):
+    """Payload for updating an existing area."""
+
     name: str | None = None
     color_hex: str | None = Field(default=None, alias="colorHex")
     icon: str | None = None
 
 
 class TimeOfDay(HabitipyBaseModel):
+    """A time-of-day block (e.g. Morning, Evening)."""
+
     id: str
     name: str
     icon: str | None = None
@@ -321,6 +385,8 @@ class TimeOfDay(HabitipyBaseModel):
 
 
 class Habit(HabitipyBaseModel):
+    """A habit resource returned by the Habitify API."""
+
     id: str
     name: str
     icon: str | None = None
@@ -342,11 +408,15 @@ class Habit(HabitipyBaseModel):
 
 
 class HabitListPage(HabitipyBaseModel):
+    """Paginated list of habits returned by the API."""
+
     data: list[Habit]
     pagination: Pagination
 
 
 class HabitJournalStatus(str, Enum):
+    """Completion state of a habit on a given day."""
+
     COMPLETED = "completed"
     SKIPPED = "skipped"
     FAILED = "failed"
@@ -354,15 +424,21 @@ class HabitJournalStatus(str, Enum):
 
 
 class HabitJournalStreakUnit(str, Enum):
+    """Unit used to measure a streak length."""
+
     DAY = "day"
 
 
 class HabitJournalCurrentStreak(HabitipyBaseModel):
+    """Current streak metadata for a journal entry."""
+
     length: int
     unit: HabitJournalStreakUnit
 
 
 class HabitJournalProgress(HabitipyBaseModel):
+    """Progress toward the habit's goal for the journal day."""
+
     current: float
     target: float
     unit: str
@@ -370,10 +446,14 @@ class HabitJournalProgress(HabitipyBaseModel):
 
 
 class HabitJournalLogInfo(HabitipyBaseModel):
+    """How the journal entry was logged."""
+
     type: LogMethod
 
 
 class HabitJournalEntry(HabitipyBaseModel):
+    """A single habit entry in the daily journal."""
+
     id: str
     name: str
     status: HabitJournalStatus
@@ -387,10 +467,14 @@ class HabitJournalEntry(HabitipyBaseModel):
 
 
 class HabitJournalPage(HabitipyBaseModel):
+    """Response envelope for the habit journal endpoint."""
+
     data: list[HabitJournalEntry]
 
 
 class HabitStatisticsUnit(HabitipyBaseModel):
+    """Unit information included in habit statistics."""
+
     id: str | None = None
     name: str | None = None
     symbol: UnitSymbol | str
@@ -407,12 +491,16 @@ class HabitStatisticsUnit(HabitipyBaseModel):
 
 
 class HabitStatisticsDailyProgress(HabitipyBaseModel):
+    """Per-day progress snapshot within habit statistics."""
+
     date: date
     total_log: float = Field(alias="totalLog")
     status: HabitJournalStatus
 
 
 class HabitStatistics(HabitipyBaseModel):
+    """Aggregated statistics for a single habit."""
+
     id: str
     name: str
     type: HabitType
@@ -429,32 +517,46 @@ class HabitStatistics(HabitipyBaseModel):
 
 
 class HabitStatisticsResponse(HabitipyBaseModel):
+    """Response envelope for the habit statistics endpoint."""
+
     data: HabitStatistics
 
 
 class HabitResponse(HabitipyBaseModel):
+    """Single-habit response envelope."""
+
     data: Habit
 
 
 class SuccessMessageResponse(HabitipyBaseModel):
+    """Generic success message returned by mutation endpoints."""
+
     message: str
 
 
 class HabitLogRequest(HabitipyRequestModel):
+    """Payload for logging a numeric value against a habit."""
+
     unit_symbol: UnitSymbol = Field(alias="unitSymbol")
     value: float
     target_date: date | None = Field(default=None, alias="targetDate")
 
 
 class HabitLogResponse(SuccessMessageResponse):
+    """Response from a habit log action."""
+
     pass
 
 
 class HabitLogActionRequest(HabitipyRequestModel):
+    """Payload for simple log actions (complete/skip/fail)."""
+
     target_date: date | None = Field(default=None, alias="targetDate")
 
 
 class MoodLevel(str, Enum):
+    """Subjective mood scale for a journal note."""
+
     VERY_LOW = "veryLow"
     LOW = "low"
     NEUTRAL = "neutral"
@@ -463,6 +565,8 @@ class MoodLevel(str, Enum):
 
 
 class HabitNote(HabitipyBaseModel):
+    """A note attached to a habit log entry."""
+
     id: str
     content: str | None = None
     mood_level: MoodLevel | None = Field(default=None, alias="moodLevel")
@@ -471,10 +575,14 @@ class HabitNote(HabitipyBaseModel):
 
 
 class HabitNoteListResponse(HabitipyBaseModel):
+    """Response envelope for listing habit notes."""
+
     data: list[HabitNote]
 
 
 class HabitNoteWriteRequest(HabitipyRequestModel):
+    """Base payload for creating or updating a habit note."""
+
     content: str | None = None
     mood_level: MoodLevel | None = Field(default=None, alias="moodLevel")
     photos: list[str] | None = None
@@ -487,10 +595,18 @@ class HabitNoteWriteRequest(HabitipyRequestModel):
 
 
 class HabitNoteCreateRequest(HabitNoteWriteRequest):
+    """Payload for creating a new habit note."""
+
     pass
 
 
 class HabitNoteUpdateRequest(HabitNoteWriteRequest):
+    """Payload for updating an existing habit note.
+
+    Uses ``exclude_unset=True`` so that ``None`` can be sent explicitly to
+    clear a field.
+    """
+
     def to_request_body(self) -> dict[str, object]:
         return cast(
             dict[str, object],
@@ -499,6 +615,8 @@ class HabitNoteUpdateRequest(HabitNoteWriteRequest):
 
 
 class HabitCreateRequest(HabitipyRequestModel):
+    """Payload for creating a new habit."""
+
     name: str
     type: HabitType
     description: str | None = None
@@ -515,6 +633,12 @@ class HabitCreateRequest(HabitipyRequestModel):
 
 
 class HabitUpdateRequest(HabitipyRequestModel):
+    """Payload for updating an existing habit.
+
+    Empty nested objects (e.g. ``{"goal": {}}``) are pruned so the server
+    does not receive ambiguous partial updates.
+    """
+
     name: str | None = None
     description: str | None = None
     occurrence: HabitCreateOccurrence | None = None
