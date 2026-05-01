@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import httpx
 import pytest
 import respx
@@ -99,9 +101,11 @@ def test_client_areas_create_sends_expected_json_and_parses_response() -> None:
 
     assert route.called
     assert route.calls[0].request.headers["X-API-Key"] == "test-key"
-    assert route.calls[0].request.read().decode("utf-8") == (
-        '{"name":"Health","colorHex":"#4ECDC4","icon":"heart"}'
-    )
+    assert json.loads(route.calls[0].request.content.decode("utf-8")) == {
+        "name": "Health",
+        "colorHex": "#4ECDC4",
+        "icon": "heart",
+    }
     assert area.id == "area_1"
 
 
@@ -118,7 +122,7 @@ def test_client_areas_update_sends_only_provided_fields_and_parses_response() ->
         client.close()
 
     assert route.called
-    assert route.calls[0].request.read().decode("utf-8") == '{"name":"Wellness"}'
+    assert json.loads(route.calls[0].request.content.decode("utf-8")) == {"name": "Wellness"}
     assert area.name == "Health"
 
 

@@ -79,7 +79,7 @@ For a quick coverage report:
 poetry run pytest --cov=habitipy --cov-report=term-missing
 ```
 
-Coverage uploads run from the `Coverage` GitHub Actions job and power the README badge via Codecov. If tokenless uploads are unavailable for the repository, configure `CODECOV_TOKEN` in repository secrets.
+Coverage uploads run from the `Coverage` GitHub Actions job and power the README badge via Codecov. The workflow uses OIDC by default and also passes `CODECOV_TOKEN` when that secret is configured, so repositories that require the token can opt in without changing the workflow.
 
 For the declared support matrix, use `tox`:
 
