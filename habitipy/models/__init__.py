@@ -1,6 +1,9 @@
 from .habits import (
     Area,
+    AreaCreateRequest,
     AreaListResponse,
+    AreaResponse,
+    AreaUpdateRequest,
     GoalPeriodicity,
     Habit,
     HabitCreateRequest,
@@ -28,7 +31,10 @@ from .habits import (
 
 __all__ = [
     "Area",
+    "AreaCreateRequest",
     "AreaListResponse",
+    "AreaResponse",
+    "AreaUpdateRequest",
     "GoalPeriodicity",
     "Habit",
     "HabitCreateRequest",

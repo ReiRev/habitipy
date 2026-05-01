@@ -10,7 +10,10 @@ from .errors import (
 )
 from .models.habits import (
     Area,
+    AreaCreateRequest,
     AreaListResponse,
+    AreaResponse,
+    AreaUpdateRequest,
     GoalPeriodicity,
     Habit,
     HabitCreateRequest,
@@ -38,7 +41,10 @@ from .models.habits import (
 
 __all__ = [
     "Area",
+    "AreaCreateRequest",
     "AreaListResponse",
+    "AreaResponse",
+    "AreaUpdateRequest",
     "ApiError",
     "AuthenticationError",
     "GoalPeriodicity",

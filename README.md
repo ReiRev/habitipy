@@ -1,4 +1,6 @@
 # habitipy
+[![Coverage](https://codecov.io/gh/ReiRev/habitipy/branch/main/graph/badge.svg)](https://codecov.io/gh/ReiRev/habitipy)
+
 A Python client for Habitify: manage habits, logs, completions, skips, and progress from code.
 
 ## Usage
@@ -76,6 +78,8 @@ For a quick coverage report:
 ```bash
 poetry run pytest --cov=habitipy --cov-report=term-missing
 ```
+
+Coverage uploads run from the `Coverage` GitHub Actions job and power the README badge via Codecov. If tokenless uploads are unavailable for the repository, configure `CODECOV_TOKEN` in repository secrets.
 
 For the declared support matrix, use `tox`:
 
