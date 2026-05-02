@@ -5,7 +5,7 @@ description = "A Python client for Habitify: manage habits, logs, completions, s
 authors = [
     {name = "ReiRev",email = "reirev2913@gmail.com"}
 ]
-license = {text = "MIT"}
+license = "MIT"
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
@@ -19,6 +19,13 @@ dependencies = [
     "httpx>=0.27,<1",
     "pydantic>=2.8,<3",
 ]
+
+
+[project.urls]
+Homepage = "https://github.com/ReiRev/habitipie"
+Repository = "https://github.com/ReiRev/habitipie"
+Issues = "https://github.com/ReiRev/habitipie/issues"
+Documentation = "https://github.com/ReiRev/habitipie#readme"
 
 
 [project.optional-dependencies]
@@ -88,6 +95,13 @@ skip_covered = true
 [tool.pytest.ini_options]
 addopts = "-ra"
 testpaths = ["tests"]
+
+
+[tool.poetry]
+include = [
+    { path = "habitipie/py.typed", format = "sdist" },
+    { path = "habitipie/py.typed", format = "wheel" },
+]
 
 
 [build-system]
