@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal, cast
+
 import httpx
 
 from .areas import AreasResource
@@ -11,25 +13,63 @@ API_KEY_HEADER = "X-API-Key"
 
 
 class HabitipyClient:
+    """Synchronous client for the Habitify API v2.
+
+    The client can be used as a context manager so the underlying HTTP session
+    is closed automatically::
+
+        with HabitipyClient(api_key="...") as client:
+            page = client.habits.list()
+
+    You may also bring your own :class:`httpx.Client` and manage its lifecycle
+    yourself::
+
+        http = httpx.Client()
+        client = HabitipyClient(api_key="...", client=http)
+        # ... use client ...
+        http.close()
+
+    Attributes:
+        habits: Namespace for habit-related endpoints.
+        areas: Namespace for area-related endpoints.
+    """
+
     def __init__(
         self,
         api_key: str | None = None,
         *,
         client: httpx.Client | None = None,
         base_url: str = DEFAULT_BASE_URL,
+        timeout: float = DEFAULT_TIMEOUT,
     ) -> None:
-        if client is None and api_key is None:
-            raise ValueError("api_key is required when client is not provided.")
+        """Create a new Habitipy client.
+
+        Args:
+            api_key: Habitify API key. Required when *client* is not provided
+                and must be a non-empty string.
+            client: An existing :class:`httpx.Client` to use for requests. When
+                provided, the caller is responsible for closing it.
+            base_url: Base URL for the Habitify API. Defaults to the production
+                v2 endpoint.
+            timeout: Default timeout in seconds for HTTP requests. Ignored when
+                *client* is injected.
+
+        Raises:
+            ValueError: If *api_key* is missing, empty, or the injected *client*
+                lacks the ``X-API-Key`` header.
+        """
+        if client is None:
+            if api_key is None or api_key == "":
+                raise ValueError("api_key is required when client is not provided.")
 
         self._owns_client = client is None
         default_headers: dict[str, str] | None = None
         if client is None:
-            assert api_key is not None
-            default_headers = {API_KEY_HEADER: api_key}
+            default_headers = {API_KEY_HEADER: cast(str, api_key)}
 
         self._client = client or httpx.Client(
             base_url=base_url.rstrip("/"),
-            timeout=DEFAULT_TIMEOUT,
+            timeout=timeout,
             headers=default_headers,
         )
 
@@ -37,7 +77,7 @@ class HabitipyClient:
             if not str(self._client.base_url):
                 self._client.base_url = httpx.URL(base_url.rstrip("/"))
 
-            if api_key is not None:
+            if api_key is not None and api_key != "":
                 self._client.headers[API_KEY_HEADER] = api_key
 
             if API_KEY_HEADER not in self._client.headers:
@@ -56,5 +96,14 @@ class HabitipyClient:
     def __enter__(self) -> HabitipyClient:
         return self
 
-    def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+    def __exit__(self, exc_type: object, exc: object, tb: object) -> Literal[False]:
         self.close()
+        return False
+
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__name__}("
+            f"base_url={self._client.base_url!r}, "
+            f"timeout={self._client.timeout!r}, "
+            f"_owns_client={self._owns_client!r})"
+        )

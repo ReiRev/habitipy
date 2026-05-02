@@ -6,8 +6,9 @@ import httpx
 import pytest
 import respx
 
-from habitipy import AreaCreateRequest, AreaListResponse, AreaUpdateRequest, HabitipyClient
+from habitipy import AreaCreateRequest, AreaUpdateRequest, HabitipyClient
 from habitipy.errors import (
+    ApiError,
     AuthenticationError,
     NotFoundError,
     ResponseDecodeError,
@@ -47,8 +48,8 @@ def test_client_areas_list_parses_response() -> None:
         client.close()
 
     assert route.called
-    assert isinstance(areas, AreaListResponse)
-    assert areas.data[0].name == "Health"
+    assert isinstance(areas, list)
+    assert areas[0].name == "Health"
 
 
 @respx.mock
@@ -148,7 +149,7 @@ def test_client_areas_delete_rejects_unexpected_success_status() -> None:
 
     client = HabitipyClient(api_key="test-key")
     try:
-        with pytest.raises(httpx.HTTPStatusError, match="Expected HTTP 204 No Content"):
+        with pytest.raises(ApiError, match="Expected HTTP 204 No Content"):
             client.areas.delete("area_1")
     finally:
         client.close()

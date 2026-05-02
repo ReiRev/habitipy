@@ -8,6 +8,18 @@ from .errors import ResponseDecodeError, UnexpectedResponseShapeError
 
 
 def decode_json_object(response: httpx.Response) -> dict[str, Any]:
+    """Decode an HTTP response body as a JSON object.
+
+    Args:
+        response: HTTP response whose body should be parsed.
+
+    Returns:
+        The decoded JSON payload as a Python dict.
+
+    Raises:
+        ResponseDecodeError: When the body is not valid JSON.
+        UnexpectedResponseShapeError: When the decoded value is not a dict.
+    """
     try:
         payload = response.json()
     except ValueError as exc:
