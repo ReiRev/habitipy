@@ -25,12 +25,14 @@ dependencies = [
 Homepage = "https://github.com/ReiRev/habitipie"
 Repository = "https://github.com/ReiRev/habitipie"
 Issues = "https://github.com/ReiRev/habitipie/issues"
-Documentation = "https://github.com/ReiRev/habitipie#readme"
+Documentation = "https://reirev.github.io/habitipie/"
 
 
 [project.optional-dependencies]
 dev = [
     "black>=25,<26",
+    "mkdocs>=1.6,<2",
+    "mkdocs-material>=9.5,<10",
     "isort>=5.13,<6",
     "mypy>=1.11,<2",
     "pre-commit>=4,<5",
