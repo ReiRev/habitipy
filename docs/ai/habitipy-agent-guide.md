@@ -4,7 +4,7 @@ This document is for AI agents working in this repository.
 
 ## Product Intent
 
-`habitipy` is a Python client for Habitify API v2. The client should feel like a Python package with resource namespaces rather than a thin dump of HTTP endpoints.
+`habitipie` is a Python client for Habitify API v2. The client should feel like a Python package with resource namespaces rather than a thin dump of HTTP endpoints.
 
 Primary examples:
 
@@ -59,7 +59,7 @@ Agents should verify endpoint details against the OpenAPI spec before implementi
 ### Code quality
 
 - Use Black for formatting, isort for import ordering, Ruff for linting, and mypy for static type checking.
-- After Python changes, run `poetry run isort`, `poetry run black`, `poetry run ruff check`, and `poetry run mypy habitipy`.
+- After Python changes, run `poetry run isort`, `poetry run black`, `poetry run ruff check`, and `poetry run mypy habitipie`.
 - Keep pre-commit configured so the same checks can run automatically before commits.
 - Do not skip these validations when changing Python code.
 
@@ -105,7 +105,7 @@ The user-facing surface can still flatten some of these into `client.habits.*` m
 This is guidance, not a locked file tree.
 
 ```text
-habitipy/
+habitipie/
   __init__.py
   errors.py
   pagination.py

@@ -1,9 +1,9 @@
-# habitipy
+# habitipie
 [![Coverage](https://codecov.io/gh/ReiRev/habitipy/branch/main/graph/badge.svg)](https://codecov.io/gh/ReiRev/habitipy)
 
 A typed Python client for Habitify API v2.
 
-`habitipy` gives you a clean, typed way to bring Habitify into Python scripts,
+`habitipie` gives you a clean, typed way to bring Habitify into Python scripts,
 automation, dashboards, and internal tools.
 
 Instead of stitching together raw HTTP calls, you get a resource-oriented client,
@@ -20,7 +20,7 @@ easier to discover and helps prioritize future work.
 - Explicit pagination objects for list endpoints
 - Mapped API errors for common HTTP failure cases
 
-## Why habitipy?
+## Why habitipie?
 
 - Build scripts and services around your Habitify data without hand-rolling API clients
 - Keep request and response handling strongly typed instead of passing unstructured payloads
@@ -29,11 +29,21 @@ easier to discover and helps prioritize future work.
 
 ## Installation
 
-`habitipy` supports Python 3.10 through 3.13.
+`habitipie` supports Python 3.10 through 3.13.
 
 ```bash
-pip install habitipy
+pip install habitipie
 ```
+
+## Rename Notice
+
+The PyPI distribution was renamed from `habitipy` to `habitipie` because the
+old distribution name was already taken.
+
+This is an intentional breaking change:
+
+- install with `pip install habitipie`
+- import with `from habitipie import HabitipyClient`
 
 Set your Habitify API key:
 
@@ -46,7 +56,7 @@ export HABITIFY_API_KEY="your-api-key"
 ```python
 import os
 
-from habitipy import HabitipyClient
+from habitipie import HabitipyClient
 
 with HabitipyClient(api_key=os.environ["HABITIFY_API_KEY"]) as client:
     habits = client.habits.list(limit=10)
@@ -63,7 +73,7 @@ with HabitipyClient(api_key=os.environ["HABITIFY_API_KEY"]) as client:
 Create a client and work through the `habits` and `areas` resources:
 
 ```python
-from habitipy import HabitipyClient
+from habitipie import HabitipyClient
 
 with HabitipyClient(api_key="YOUR_API_KEY") as client:
     page = client.habits.list(limit=25)
@@ -86,7 +96,7 @@ adds the `X-API-Key` header and default Habitify base URL when they are missing:
 ```python
 import httpx
 
-from habitipy import HabitipyClient
+from habitipie import HabitipyClient
 
 with httpx.Client() as http_client:
     client = HabitipyClient(api_key="YOUR_API_KEY", client=http_client)
@@ -111,7 +121,7 @@ Single-resource and non-paginated endpoints are unwrapped for convenience:
 Write calls accept dedicated request models:
 
 ```python
-from habitipy import HabitLogRequest, HabitNoteCreateRequest, UnitSymbol
+from habitipie import HabitLogRequest, HabitNoteCreateRequest, UnitSymbol
 
 with HabitipyClient(api_key="YOUR_API_KEY") as client:
     client.habits.create_log(
@@ -151,10 +161,10 @@ poetry run pre-commit install
 Run the full local quality pass before finishing Python changes:
 
 ```bash
-poetry run isort habitipy tests
-poetry run black habitipy tests
-poetry run ruff check habitipy tests
-poetry run mypy habitipy
+poetry run isort habitipie tests
+poetry run black habitipie tests
+poetry run ruff check habitipie tests
+poetry run mypy habitipie
 ```
 
 Or use the dedicated tox environment:
@@ -178,7 +188,7 @@ poetry run pytest tests/test_habits.py
 Generate coverage locally:
 
 ```bash
-poetry run pytest --cov=habitipy --cov-report=term-missing
+poetry run pytest --cov=habitipie --cov-report=term-missing
 ```
 
 Run the declared Python support matrix with `tox`:
@@ -193,7 +203,7 @@ GitHub Actions runs the same quality and test commands on pull requests and on p
 
 - `poetry run tox run -e quality`
 - `poetry run tox run -e py310,py311,py312,py313`
-- `poetry run pytest --cov=habitipy --cov-report=xml`
+- `poetry run pytest --cov=habitipie --cov-report=xml`
 
 Coverage reports are uploaded to Codecov from the `Coverage` job. The workflow uses
 OIDC and also passes `CODECOV_TOKEN`, so repositories that require the token can use

@@ -20,7 +20,7 @@
 ## Workflow
 - Before changing API-facing code, verify the relevant endpoint shape in the Habitify OpenAPI spec.
 - Keep changes incremental: transport and errors first, then shared models, then resources.
-- For Python changes, run `poetry run isort`, `poetry run black`, `poetry run ruff check`, and `poetry run mypy habitipy` before finalizing.
+- For Python changes, run `poetry run isort`, `poetry run black`, `poetry run ruff check`, and `poetry run mypy habitipie` before finalizing.
 - Keep `.env` and other machine-local secrets out of version control.
 - When adding or changing tests, validate across every supported Python version in the project's declared support matrix; if that matrix is not explicit yet, make it explicit before finalizing test automation.
 - After implementation work is complete and validated, create a checkpoint commit unless higher-priority runtime instructions for the current environment forbid committing; if committing is blocked, say so explicitly.
