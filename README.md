@@ -3,9 +3,14 @@
 
 A typed Python client for Habitify API v2.
 
-`habitipy` wraps the Habitify v2 API with a resource-oriented client built on `httpx`.
-It exposes typed models for reads and writes so you can work with habits, areas,
-logs, notes, and statistics without passing raw dictionaries around.
+`habitipy` gives you a clean, typed way to bring Habitify into Python scripts,
+automation, dashboards, and internal tools.
+
+Instead of stitching together raw HTTP calls, you get a resource-oriented client,
+predictable models, and an API surface that feels natural in Python from the first call.
+
+If this project saves you time, consider starring the repository. It makes the project
+easier to discover and helps prioritize future work.
 
 ## Highlights
 
@@ -14,6 +19,13 @@ logs, notes, and statistics without passing raw dictionaries around.
 - Native `httpx` transport with optional client injection
 - Explicit pagination objects for list endpoints
 - Mapped API errors for common HTTP failure cases
+
+## Why habitipy?
+
+- Build scripts and services around your Habitify data without hand-rolling API clients
+- Keep request and response handling strongly typed instead of passing unstructured payloads
+- Start simple with the built-in client or plug into an existing `httpx.Client`
+- Stay close to the Habitify API while keeping the calling code pleasant to read
 
 ## Installation
 
