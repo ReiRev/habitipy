@@ -1,0 +1,26 @@
+site_name: habitipie
+site_description: Typed Python client for Habitify API v2.
+site_url: https://reirev.github.io/habitipie/
+repo_url: https://github.com/ReiRev/habitipie
+repo_name: ReiRev/habitipie
+docs_dir: docs/site
+strict: true
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.top
+    - content.code.copy
+
+nav:
+  - Overview: index.md
+  - Getting Started: getting-started.md
+  - Development: development.md
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true

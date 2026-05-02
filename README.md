@@ -12,6 +12,17 @@ predictable models, and an API surface that feels natural in Python from the fir
 If this project saves you time, consider starring the repository. It makes the project
 easier to discover and helps prioritize future work.
 
+## Documentation
+
+The published docs site is available at <https://reirev.github.io/habitipie/>.
+
+Build the docs locally with:
+
+```bash
+poetry install --extras dev
+poetry run mkdocs serve
+```
+
 ## Highlights
 
 - Resource-style API: `HabitipyClient(...).habits.list()` and `HabitipyClient(...).areas.list()`
@@ -204,10 +215,14 @@ GitHub Actions runs the same quality and test commands on pull requests and on p
 - `poetry run tox run -e quality`
 - `poetry run tox run -e py310,py311,py312,py313`
 - `poetry run pytest --cov=habitipie --cov-report=xml`
+- `poetry run mkdocs build --strict`
 
 Coverage reports are uploaded to Codecov from the `Coverage` job. The workflow uses
 OIDC and also passes `CODECOV_TOKEN`, so repositories that require the token can use
 the same workflow without further changes.
+
+The documentation site is deployed to GitHub Pages from `main` after a strict MkDocs
+build succeeds.
 
 ## Release
 
