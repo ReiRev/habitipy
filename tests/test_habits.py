@@ -8,7 +8,7 @@ import pytest
 import respx
 from pydantic import ValidationError
 
-from habitipy import (
+from habitipie import (
     GoalPeriodicity,
     Habit,
     HabitCreateRequest,
@@ -25,7 +25,7 @@ from habitipy import (
     SuccessMessageResponse,
     UnitSymbol,
 )
-from habitipy.errors import (
+from habitipie.errors import (
     ApiError,
     AuthenticationError,
     NotFoundError,
@@ -33,7 +33,7 @@ from habitipy.errors import (
     ResponseDecodeError,
     UnexpectedResponseShapeError,
 )
-from habitipy.models.habits import (
+from habitipie.models.habits import (
     HabitCreateDateEndCondition,
     HabitCreateGoal,
     HabitCreateHabitStack,

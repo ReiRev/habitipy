@@ -6,8 +6,8 @@ import httpx
 import pytest
 import respx
 
-from habitipy import AreaCreateRequest, AreaUpdateRequest, HabitipyClient
-from habitipy.errors import (
+from habitipie import AreaCreateRequest, AreaUpdateRequest, HabitipyClient
+from habitipie.errors import (
     ApiError,
     AuthenticationError,
     NotFoundError,
