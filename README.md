@@ -1,25 +1,47 @@
 # habitipy
 [![Coverage](https://codecov.io/gh/ReiRev/habitipy/branch/main/graph/badge.svg)](https://codecov.io/gh/ReiRev/habitipy)
 
-A Python client for Habitify: manage habits, logs, completions, skips, and progress from code.
+A typed Python client for Habitify API v2.
 
-## Quickstart
+`habitipy` gives you a clean, typed way to bring Habitify into Python scripts,
+automation, dashboards, and internal tools.
+
+Instead of stitching together raw HTTP calls, you get a resource-oriented client,
+predictable models, and an API surface that feels natural in Python from the first call.
+
+If this project saves you time, consider starring the repository. It makes the project
+easier to discover and helps prioritize future work.
+
+## Highlights
+
+- Resource-style API: `HabitipyClient(...).habits.list()` and `HabitipyClient(...).areas.list()`
+- Typed request and response models powered by Pydantic
+- Native `httpx` transport with optional client injection
+- Explicit pagination objects for list endpoints
+- Mapped API errors for common HTTP failure cases
+
+## Why habitipy?
+
+- Build scripts and services around your Habitify data without hand-rolling API clients
+- Keep request and response handling strongly typed instead of passing unstructured payloads
+- Start simple with the built-in client or plug into an existing `httpx.Client`
+- Stay close to the Habitify API while keeping the calling code pleasant to read
+
+## Installation
 
 `habitipy` supports Python 3.10 through 3.13.
-
-Install it with pip:
 
 ```bash
 pip install habitipy
 ```
 
-Set your Habitify API key in the environment:
+Set your Habitify API key:
 
 ```bash
 export HABITIFY_API_KEY="your-api-key"
 ```
 
-Then make your first read call:
+## Quick Start
 
 ```python
 import os
@@ -36,9 +58,9 @@ with HabitipyClient(api_key=os.environ["HABITIFY_API_KEY"]) as client:
         print(area.name)
 ```
 
-## Usage
+## Resource API
 
-Create a client with the built-in `httpx.Client` setup:
+Create a client and work through the `habits` and `areas` resources:
 
 ```python
 from habitipy import HabitipyClient
@@ -58,7 +80,8 @@ with HabitipyClient(api_key="YOUR_API_KEY") as client:
     print(stats.total_logs)
 ```
 
-You can also bring your own `httpx.Client` and keep the context manager on that side. `HabitipyClient` will add the `X-API-Key` header and default Habitify base URL when they are missing:
+If you already manage your own `httpx.Client`, you can inject it. `HabitipyClient`
+adds the `X-API-Key` header and default Habitify base URL when they are missing:
 
 ```python
 import httpx
@@ -70,13 +93,14 @@ with httpx.Client() as http_client:
     page = client.habits.list(limit=25)
 ```
 
-If you inject your own `httpx.Client`, `HabitipyClient.close()` does not close it for you.
+When you inject your own `httpx.Client`, `HabitipyClient.close()` does not close it for you.
 
-## Read And Write Shapes
+## Typed Results
 
-Methods that return collections with pagination keep the page wrapper, for example `client.habits.list()` returns a `HabitListPage` with `.data` and `.pagination`.
+List endpoints keep pagination metadata. For example, `client.habits.list()` returns a
+`HabitListPage` with `.data` and `.pagination`.
 
-Methods that return a single resource or a non-paginated collection are unwrapped for you:
+Single-resource and non-paginated endpoints are unwrapped for convenience:
 
 - `client.habits.get(...) -> Habit`
 - `client.habits.journal(...) -> list[HabitJournalEntry]`
@@ -84,7 +108,7 @@ Methods that return a single resource or a non-paginated collection are unwrappe
 - `client.habits.statistics(...) -> HabitStatistics`
 - `client.areas.list() -> list[Area]`
 
-Write calls accept typed request models:
+Write calls accept dedicated request models:
 
 ```python
 from habitipy import HabitLogRequest, HabitNoteCreateRequest, UnitSymbol
@@ -102,9 +126,9 @@ with HabitipyClient(api_key="YOUR_API_KEY") as client:
     print(note.id)
 ```
 
-## Errors
+## Error Handling
 
-Status errors are mapped onto typed `httpx` exceptions:
+HTTP status errors are mapped onto typed exceptions:
 
 - `AuthenticationError` for `401`
 - `NotFoundError` for `404`
@@ -112,9 +136,10 @@ Status errors are mapped onto typed `httpx` exceptions:
 - `ServerError` for `5xx`
 - `ApiError` for other non-success responses
 
-Malformed JSON or unexpected top-level payloads raise `ResponseDecodeError` and `UnexpectedResponseShapeError`.
+Malformed JSON or unexpected top-level payloads raise `ResponseDecodeError` and
+`UnexpectedResponseShapeError`.
 
-## Development Setup
+## Development
 
 Use Poetry for local development:
 
@@ -123,9 +148,7 @@ poetry install --extras dev
 poetry run pre-commit install
 ```
 
-## Code Quality
-
-Run the full local quality pass before finishing Python changes.
+Run the full local quality pass before finishing Python changes:
 
 ```bash
 poetry run isort habitipy tests
@@ -134,7 +157,7 @@ poetry run ruff check habitipy tests
 poetry run mypy habitipy
 ```
 
-If you want the same checks behind one command, use the dedicated tox env:
+Or use the dedicated tox environment:
 
 ```bash
 poetry run tox run -e quality
@@ -146,23 +169,19 @@ Pre-commit is configured for the same quality stack:
 poetry run pre-commit run --all-files
 ```
 
-## Running Tests
-
-Run the focused test slice with Poetry:
+Run a focused test slice:
 
 ```bash
 poetry run pytest tests/test_habits.py
 ```
 
-For a quick coverage report:
+Generate coverage locally:
 
 ```bash
 poetry run pytest --cov=habitipy --cov-report=term-missing
 ```
 
-Coverage uploads run from the `Coverage` GitHub Actions job and power the README badge via Codecov. The workflow uses OIDC by default and also passes `CODECOV_TOKEN` when that secret is configured, so repositories that require the token can opt in without changing the workflow.
-
-For the declared support matrix, use `tox`:
+Run the declared Python support matrix with `tox`:
 
 ```bash
 poetry run tox run -e py310,py311,py312,py313
@@ -170,7 +189,12 @@ poetry run tox run -e py310,py311,py312,py313
 
 ## CI
 
-GitHub Actions runs the same local commands on every pull request and on pushes to `main`:
+GitHub Actions runs the same quality and test commands on pull requests and on pushes to `main`:
 
 - `poetry run tox run -e quality`
 - `poetry run tox run -e py310,py311,py312,py313`
+- `poetry run pytest --cov=habitipy --cov-report=xml`
+
+Coverage reports are uploaded to Codecov from the `Coverage` job. The workflow uses
+OIDC and also passes `CODECOV_TOKEN`, so repositories that require the token can use
+the same workflow without further changes.
