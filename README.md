@@ -208,3 +208,22 @@ GitHub Actions runs the same quality and test commands on pull requests and on p
 Coverage reports are uploaded to Codecov from the `Coverage` job. The workflow uses
 OIDC and also passes `CODECOV_TOKEN`, so repositories that require the token can use
 the same workflow without further changes.
+
+## Release
+
+Pushing a version tag triggers the `Release` GitHub Actions workflow, which runs
+quality checks, the test matrix, builds the distributions, and publishes them to PyPI.
+
+Before tagging a release:
+
+- update `version` in `pyproject.toml`
+- make sure the `pypi` GitHub environment and PyPI trusted publishing are configured
+
+Create and push a release tag whose name matches `v<version>`:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The workflow verifies that the tag matches `pyproject.toml` before publishing.
