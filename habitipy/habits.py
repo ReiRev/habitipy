@@ -108,9 +108,9 @@ class HabitsResource:
             self._client,
             "POST",
             "/habits",
-            Habit,
+            HabitResponse,
             json=request.to_request_body(),
-        )
+        ).data
 
     def archive(self, habit_id: str) -> None:
         """Archive a habit.

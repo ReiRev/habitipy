@@ -302,7 +302,7 @@ def test_client_habits_list_sends_expected_query_params_and_parses_response() ->
 @respx.mock
 def test_client_habits_create_sends_expected_json_and_parses_response() -> None:
     route = respx.post("https://api.habitify.me/v2/habits").mock(
-        return_value=httpx.Response(201, json=build_habit_payload())
+        return_value=httpx.Response(201, json=build_habit_response_payload())
     )
 
     request = HabitCreateRequest(
