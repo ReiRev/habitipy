@@ -18,9 +18,20 @@ nav:
   - Overview: index.md
   - Getting Started: getting-started.md
   - Development: development.md
+  - API Reference: api.md
 
 markdown_extensions:
   - admonition
   - tables
   - toc:
       permalink: true
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+            show_signature_annotations: true
+            members_order: source
